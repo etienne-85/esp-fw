@@ -16,6 +16,9 @@ NetworkModule networkModule;
 // Test module
 TemplateModule testModule;
 
+// web socket path
+extern const char wsPath[] = "/ws"; // (1)
+
 /**
  * setup
  */
@@ -36,10 +39,14 @@ void setup() {
   FirmwareModule::setupAll();
   // Services
   Serial.println("[ESP32] Start services ");
+  WebService<80>::start();
   StaticServer<80> staticServer;
-  staticServer.start();
+  staticServer.init();
   OTAServiceWrapper<80> otaService;
-  otaService.start();
+  otaService.init();
+  WebSocketService<80, wsPath> *wss = WebSocketService<80, wsPath>::getSingleton();
+  // wss->getInheritenceTree(true);
+  Service::printServiceTree("");
   Serial.println("[ESP32] Done loading services");
 }
 

@@ -2,6 +2,7 @@
 #include <AsyncElegantOTA.h>
 #include <LittleFS.h>
 #include <WebServices.h>
+#include <string>
 
 /**
  *   OTA Update Service
@@ -10,17 +11,20 @@
 template <int SERVER_PORT> class OTAServiceWrapper : WebService<SERVER_PORT> {
 public:
   OTAServiceWrapper() : WebService<SERVER_PORT>() {
-    std::cout << "[OTAServiceWrapper] instance running on port " << SERVER_PORT
+    std::string route("/update");
+    WebService<SERVER_PORT>::serviceTreePath +=
+        "\n    |__ [OTAUpdater:" + std::to_string(SERVER_PORT) + route + "]";
+  }
+
+  void init() {
+    std::cout << "[OTAUpdater] Starting OTA Update service" << std::endl;
+    AsyncElegantOTA.begin(&WebService<SERVER_PORT>::server);
+    // state = true;
+    std::cout << "[OTAUpdater] instance running on port " << SERVER_PORT
               << std::endl;
   }
 
-  void start() {
-    WebService<SERVER_PORT>::start();
-    Serial.println("[OTAServiceWrapper] Starting OTA Update service");
-    AsyncElegantOTA.begin(&WebService<SERVER_PORT>::server);
-    // state = true;
-    Serial.println("[OTAServiceWrapper] Ok");
-  }
+  std::string getServiceName() { return std::string("OTAUpdater"); }
 };
 
 /**
@@ -30,16 +34,19 @@ public:
 template <int SERVER_PORT> class StaticServer : WebService<SERVER_PORT> {
 public:
   StaticServer() : WebService<SERVER_PORT>() {
-    std::cout << "[StaticServer] listenning on port " << SERVER_PORT
-              << std::endl;
+    std::string route("/");
+    WebService<SERVER_PORT>::serviceTreePath +=
+        "\n    |__ [StaticServer:" + std::to_string(SERVER_PORT) + route + "]";
   }
 
-  void start() {
-    // checking server state and launch if not running
-    WebService<SERVER_PORT>::start();
+  std::string getServiceName() { return std::string("StaticServer"); }
+
+  void init() {
     // load static routes
     loadRoutes();
     // state = true;
+    std::cout << "[StaticServer] listenning on port " << SERVER_PORT
+              << std::endl;
   }
 
   void loadRoutes() {
@@ -134,14 +141,15 @@ class MultiJsonWebSocketService : WebSocketService<SERVER_PORT, SOCKET_PATH> {
       // dispatch message to corresponding service
       std::string serviceName = jsonObj["service"];
       Serial.println(serviceName.c_str());
-      for (auto service : *WebSocketService<SERVER_PORT, SOCKET_PATH>::instances) {
+      for (auto service :
+           *WebSocketService<SERVER_PORT, SOCKET_PATH>::instances) {
         Serial.println(service->name.c_str());
         // match service name
         if (service->name.compare(serviceName) == 0) {
           std::string log =
               "[WebSocket] message routed to service " + serviceName;
           Serial.println(log.c_str());
-        //   service->process();
+          //   service->process();
         }
       }
 
