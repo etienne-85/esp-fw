@@ -30,7 +30,7 @@ void Service::printServiceTree(std::string dummyArg) {
 // instance version called for each child service
 void Service::printServiceTree(int depth) {
   // compute offset from depth
-   std::cout << serviceTreePath << std::endl;
+  std::cout << serviceTreePath << std::endl;
   // std::cout << "[Services]"<< instances->size() << std::endl;
   // for (auto i : *instances) {
   //   i->printServiceTree(depth + 1);
@@ -75,7 +75,7 @@ template <int SERVER_PORT> void WebService<SERVER_PORT>::start() {
  **/
 
 template <int SERVER_PORT, const char *SOCKET_PATH>
-AsyncWebSocket WebSocketService<SERVER_PORT, SOCKET_PATH>::aws(SOCKET_PATH);
+AsyncWebSocket WebSocketService<SERVER_PORT, SOCKET_PATH>::aws("/ws");
 
 template <int SERVER_PORT, const char *SOCKET_PATH>
 WebSocketService<SERVER_PORT, SOCKET_PATH> *
@@ -85,10 +85,10 @@ template <int SERVER_PORT, const char *SOCKET_PATH>
 WebSocketService<SERVER_PORT, SOCKET_PATH>::WebSocketService()
     : WebService<SERVER_PORT>() {
   WebService<SERVER_PORT>::serviceTreePath +=
-      "\n    |__ [WebSocketService:" + std::to_string(SERVER_PORT) + SOCKET_PATH + "]";
-  WebService<SERVER_PORT>::server.addHandler(
-      &WebSocketService<SERVER_PORT, SOCKET_PATH>::aws);
-  WebSocketService<SERVER_PORT, SOCKET_PATH>::aws.onEvent(eventHandler);
+      "\n    |__ [WebSocketService:" + std::to_string(SERVER_PORT) +
+      SOCKET_PATH + "]";
+  WebService<SERVER_PORT>::server.addHandler(&aws);
+  aws.onEvent(eventHandler);
   std::cout << getServiceName() << " websocket listening on port "
             << SERVER_PORT << " path " << SOCKET_PATH << std::endl;
 }
@@ -96,12 +96,11 @@ WebSocketService<SERVER_PORT, SOCKET_PATH>::WebSocketService()
 template <int SERVER_PORT, const char *SOCKET_PATH>
 WebSocketService<SERVER_PORT, SOCKET_PATH> *
 WebSocketService<SERVER_PORT, SOCKET_PATH>::getSingleton() {
-  if (WebSocketService<SERVER_PORT, SOCKET_PATH>::instance == nullptr) {
-    WebSocketService<SERVER_PORT, SOCKET_PATH>::instance =
-        new WebSocketService<SERVER_PORT, SOCKET_PATH>();
-    return WebSocketService<SERVER_PORT, SOCKET_PATH>::instance;
+  if (instance == nullptr) {
+    instance = new WebSocketService<SERVER_PORT, SOCKET_PATH>();
+    return instance;
   } else
-    return WebSocketService<SERVER_PORT, SOCKET_PATH>::instance;
+    return instance;
 }
 
 template <int SERVER_PORT, const char *SOCKET_PATH>
@@ -118,7 +117,7 @@ void WebSocketService<SERVER_PORT, SOCKET_PATH>::eventHandler(
     break;
   case WS_EVT_DATA:
     Serial.println("[WebSocket] Data received");
-    WebSocketService<SERVER_PORT, SOCKET_PATH>::dispatch(arg, data, len);
+    dispatch(arg, data, len);
     // dispatch(arg, data, len);
     break;
   case WS_EVT_PONG:
@@ -138,9 +137,7 @@ void WebSocketService<SERVER_PORT, SOCKET_PATH>::dispatch(void *arg,
     // convert raw data input
     std::string rawMsg(data, data + len);
     // process message received from one client
-    std::string replyMsg =
-        WebSocketService<SERVER_PORT, SOCKET_PATH>::getSingleton()->processMsg(
-            rawMsg);
+    std::string replyMsg = getSingleton()->processMsg(rawMsg);
     // notify server response to all connected clients
     String dataOut(replyMsg.c_str());
     aws.textAll(dataOut);

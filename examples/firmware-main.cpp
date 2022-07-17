@@ -45,7 +45,6 @@ void setup() {
   OTAServiceWrapper<80> otaService;
   otaService.init();
   WebSocketService<80, wsPath> *wss = WebSocketService<80, wsPath>::getSingleton();
-  // wss->getInheritenceTree(true);
   Service::printServiceTree("");
   Serial.println("[ESP32] Done loading services");
 }
@@ -54,7 +53,7 @@ void setup() {
  * main loop
  */
 void loop() {
-  //   WebSocketService::aws.cleanupClients();
+  WebSocketService<80, wsPath>::aws.cleanupClients();
   // Refresh all modules
   FirmwareModule::loopAll();
 }
