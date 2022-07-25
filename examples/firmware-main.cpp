@@ -14,14 +14,12 @@
 FilesysModule filesysModule;
 ConfigLoader confLoader;
 NetworkModule networkModule;
-
 // Test module
 // TemplateModule testModule;
 
 // Core services
-extern const char wsPath[] = "/ws"; // web socket path
-WebSocketListener<80, wsPath> *wsl;
-JsonWebSocketListener<80, wsPath, 200> *jwsl;
+WebSocketListener<> *wsl;
+JsonWebSocketListener<> *jwsl;
 
 
 /**
@@ -30,37 +28,29 @@ JsonWebSocketListener<80, wsPath, 200> *jwsl;
 void setup() {
   Serial.begin(115200);
   Serial.println("[ESP32] First log!");
-  // AsyncWebSocket ws("/ws");// = new AsyncWebSocket(wsUrl.c_str());
-  // // create and bind websocket event handler
-  // WebSocketImpl wsh(&ws);
-  // ws.onEvent(wsh.eventHandler);
-  // webModule.addWebSocket(&ws);
-  //  bind websocket event handler
-  //   WebSocketService::aws.onEvent(WebSocketService::eventHandler);
-  //   webModule.addWebSocket(&WebSocketService::aws);
-  // webSrv1.print();
+  // Turn-off the 'brownout detector'
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   // Core modules
   Serial.println("[ESP32] Init core modules ");
   FirmwareModule::setupAll();
   Serial.println("[ESP32] Start core services ");
-  WebService<80>::start();
-  StaticServer<80> staticServer;
+  WebService<>::start();
+  StaticServer<> staticServer;
   staticServer.init();
-  OTAServiceWrapper<80> otaService;
+  OTAServiceWrapper<> otaService;
   otaService.init();
-  WebSocketService<80, wsPath> wss;
-  wsl = new WebSocketListener<80, wsPath>();
-  jwsl = new JsonWebSocketListener<80, wsPath, 200>();
-  // CamService<80, wsPath> cs;
+  WebSocketService<> wss;
+  wsl = new WebSocketListener<>();
+  jwsl = new JsonWebSocketListener<>();
   Serial.println("[ESP32] Done loading services");
-  Serial.println("[BuildTag] abcdef");
+  Serial.println("[BuildTag] ab");
 }
 
 /**
  * main loop
  */
 void loop() {
-  WebSocketService<80, wsPath>::aws.cleanupClients();
+  WebSocketService<>::aws.cleanupClients();
   // WebSocketListener<80, wsPath>::asyncListenForwardLoop();
   // Refresh all core modules
   FirmwareModule::loopAll();

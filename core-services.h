@@ -8,7 +8,7 @@
  *   OTA Update Service
  */
 
-template <int SERVER_PORT> class OTAServiceWrapper : WebService<SERVER_PORT> {
+template <int SERVER_PORT=DEFAULT_PORT> class OTAServiceWrapper : WebService<SERVER_PORT> {
 public:
   OTAServiceWrapper() : WebService<SERVER_PORT>() {
     std::string route("/update");
@@ -31,7 +31,7 @@ public:
  * Static Server
  */
 
-template <int SERVER_PORT> class StaticServer : WebService<SERVER_PORT> {
+template <int SERVER_PORT=DEFAULT_PORT> class StaticServer : WebService<SERVER_PORT> {
 public:
   StaticServer() : WebService<SERVER_PORT>() {
     std::string route("/");
@@ -76,7 +76,7 @@ char jsonDataStub[] =
 /**
  *  WS listener providing JSON message conversion
  */
-template <int WS_PORT, const char *WS_PATH, int JSON_MSG_SIZE>
+template <int WS_PORT=DEFAULT_PORT, const char *WS_PATH=defaultWSPath, int JSON_MSG_SIZE=DEFAULT_JSON_SIZE>
 class JsonWebSocketListener : WebSocketListener<WS_PORT, WS_PATH> {
 
   std::string processMsg(std::string rawMsg) {

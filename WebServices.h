@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <defaults.h>
 
 class Service {
 public:
@@ -25,7 +26,7 @@ public:
  * or services for a specific port
  */
 
-template <int SERVER_PORT> class WebService : public Service {
+template <int SERVER_PORT=DEFAULT_PORT> class WebService : public Service {
 public:
   // server at given port shared by all instances
   static AsyncWebServer server;
@@ -44,7 +45,7 @@ public:
  * each instance of this class will be notified of incoming ws message
  */
 
-template <int SERVER_PORT, const char *SOCKET_PATH>
+template <int SERVER_PORT=DEFAULT_PORT, const char *SOCKET_PATH=defaultWSPath>
 class WebSocketService : public WebService<SERVER_PORT> {
 public:
   // Web socket object associated
@@ -78,7 +79,7 @@ public:
  * can be notified synchroneously OR can listen asynchroneously for incoming messages
  */
 
-template <int WS_PORT, const char *WS_PATH> class WebSocketListener {
+template <int WS_PORT=DEFAULT_PORT, const char *WS_PATH=defaultWSPath> class WebSocketListener {
 public:
   static int messageCount;
   static std::vector<WebSocketListener<WS_PORT, WS_PATH> *> *instances;
