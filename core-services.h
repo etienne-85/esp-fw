@@ -74,24 +74,24 @@ char jsonDataStub[] =
     "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
 
 /**
- *  WS implementation with JSON support
+ *  WS listener providing JSON message conversion
  */
-template <int SERVER_PORT, const char *SOCKET_PATH>
-class JsonWebSocketService : WebSocketService<SERVER_PORT, SOCKET_PATH> {
-  // Allocate the JSON document
-  //
-  // Inside the brackets, 200 is the capacity of the memory pool in bytes.
-  // Don't forget to change this value to match your JSON document.
-  // Use arduinojson.org/v6/assistant to compute the capacity.
-  // StaticJsonDocument<200> doc;
-
-  // StaticJsonDocument<N> allocates memory on the stack, it can be
-  // replaced by DynamicJsonDocument which allocates in the heap.
-  //
-  // DynamicJsonDocument doc(200);
-  StaticJsonDocument<200> jsonMsg;
+template <int WS_PORT, const char *WS_PATH, int JSON_MSG_SIZE>
+class JsonWebSocketListener : WebSocketListener<WS_PORT, WS_PATH> {
 
   std::string processMsg(std::string rawMsg) {
+    // Allocate the JSON document
+    //
+    // Inside the brackets, 200 is the capacity of the memory pool in bytes.
+    // Don't forget to change this value to match your JSON document.
+    // Use arduinojson.org/v6/assistant to compute the capacity.
+    // StaticJsonDocument<200> doc;
+
+    // StaticJsonDocument<N> allocates memory on the stack, it can be
+    // replaced by DynamicJsonDocument which allocates in the heap.
+    //
+    // DynamicJsonDocument doc(200);
+    StaticJsonDocument<JSON_MSG_SIZE> jsonMsg;
     // convert to a json object
     DeserializationError error = deserializeJson(jsonMsg, rawMsg);
     // Check parsing was successful.
@@ -99,28 +99,30 @@ class JsonWebSocketService : WebSocketService<SERVER_PORT, SOCKET_PATH> {
 
       // Most of the time, you can rely on the implicit casts.
       // In other case, you can do doc["time"].as<long>();
-      const char *sensor = jsonMsg["sensor"];
-      long time = jsonMsg["time"];
-      double latitude = jsonMsg["data"][0];
-      double longitude = jsonMsg["data"][1];
+      // const char *sensor = jsonMsg["sensor"];
+      // long time = jsonMsg["time"];
+      // double latitude = jsonMsg["data"][0];
+      // double longitude = jsonMsg["data"][1];
 
-      // Print values.
-      Serial.println(sensor);
-      Serial.println(time);
-      Serial.println(latitude, 6);
-      Serial.println(longitude, 6);
+      // // Print values.
+      // Serial.println(sensor);
+      // Serial.println(time);
+      // Serial.println(latitude, 6);
+      // Serial.println(longitude, 6);
+      const char *action = jsonMsg["action"];
+      std::cout << "[JsonWebSocketListener > processMsg] " << action << std::endl;
 
-      std::string replyMsg("default replay");
+      std::string replyMsg("default reply");
       return replyMsg;
     }
   }
 };
 
 /**
- *  WS implementation with JSON support
+ *  routing ws message to multiple sub services
  */
 template <int SERVER_PORT, const char *SOCKET_PATH>
-class MultiJsonWebSocketService : WebSocketService<SERVER_PORT, SOCKET_PATH> {
+class WebSocketRouter : WebSocketService<SERVER_PORT, SOCKET_PATH> {
   // Message container shared by instances
   static StaticJsonDocument<200> jsonObj;
 

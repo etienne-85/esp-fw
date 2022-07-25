@@ -1,12 +1,14 @@
+#include "soc/rtc_cntl_reg.h" // Disable brownour problems
+#include "soc/soc.h"          // Disable brownour problems
 #include <Arduino.h>
+#include <iostream>
 #include <ConfigLoader.h>
 #include <FirmwareModule.h>
 #include <filesys-module.h>
-#include <iostream>
 #include <network-module.h>
 #include <WebServices.cpp> // need to use cpp instead of header here due to template use
 #include <core-services.h>
-#include <module-template.h>
+// #include <module-template.h>
 
 // Core modules
 FilesysModule filesysModule;
@@ -14,10 +16,13 @@ ConfigLoader confLoader;
 NetworkModule networkModule;
 
 // Test module
-TemplateModule testModule;
+// TemplateModule testModule;
 
-// web socket path
-extern const char wsPath[] = "/ws"; // (1)
+// Core services
+extern const char wsPath[] = "/ws"; // web socket path
+WebSocketListener<80, wsPath> *wsl;
+JsonWebSocketListener<80, wsPath, 200> *jwsl;
+
 
 /**
  * setup
@@ -37,16 +42,18 @@ void setup() {
   // Core modules
   Serial.println("[ESP32] Init core modules ");
   FirmwareModule::setupAll();
-  // Services
-  Serial.println("[ESP32] Start services ");
+  Serial.println("[ESP32] Start core services ");
   WebService<80>::start();
   StaticServer<80> staticServer;
   staticServer.init();
   OTAServiceWrapper<80> otaService;
   otaService.init();
-  WebSocketService<80, wsPath> *wss = WebSocketService<80, wsPath>::getSingleton();
-  Service::printServiceTree("");
+  WebSocketService<80, wsPath> wss;
+  wsl = new WebSocketListener<80, wsPath>();
+  jwsl = new JsonWebSocketListener<80, wsPath, 200>();
+  // CamService<80, wsPath> cs;
   Serial.println("[ESP32] Done loading services");
+  Serial.println("[BuildTag] abcdef");
 }
 
 /**
@@ -54,6 +61,7 @@ void setup() {
  */
 void loop() {
   WebSocketService<80, wsPath>::aws.cleanupClients();
-  // Refresh all modules
+  // WebSocketListener<80, wsPath>::asyncListenForwardLoop();
+  // Refresh all core modules
   FirmwareModule::loopAll();
 }
