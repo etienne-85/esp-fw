@@ -8,6 +8,7 @@
 #include <network-module.h>
 #include <WebServices.cpp> // need to use cpp instead of header here due to template use
 #include <core-services.h>
+// #include <GpioService.h>
 // #include <module-template.h>
 
 // Core modules
@@ -43,7 +44,7 @@ void setup() {
   wsl = new WebSocketListener<>();
   jwsl = new JsonWebSocketListener<>();
   Serial.println("[ESP32] Done loading services");
-  Serial.println("[BuildTag] ab");
+  Serial.println("[BuildTag] abcde");
 }
 
 /**
