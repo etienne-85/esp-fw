@@ -1,119 +1,80 @@
 # esp32-toolkit-lib
-ESP32 firmware build lib
+Ready to use ESP32 firmware, with out-of-the-box support for:
+- external config loader
+- network connection (both AP and STA mode)
+- OTA updater to ease firmware deployment
+- static file server hosting custom web-app inside esp32
+- realtime communications through websockets
+- remote control of GPIO to support new hardware without having to change any firmware code
 
-Aim is to provide core features to quickly develop ESP32 firmware for various diy projects, as well as a modular architecture to extend firmware's features . 
+Firmware designed 
+- to cover most uses cases, avoiding as much as possible low-level firmware code writing.
+- to provide a modular architecture to easily extend firmware's core features 
 
-## Workspace setup
+## Usage
 
-### Remote development
+A script `.pio.env` is provided to provide access to following commands:
+- `pio-install`: install platform io (should only be run once)
+- `pio-build-firmware`: build firmware 
+- `pio-build-fs`: build image to embedd config and static web content into esp32's filesystem
+- `pio-upload-firmware`:
+- `pio-upload-fs`:
 
-Gitpod workspace is meant to work out of the box pre-configuration and tools already installed.
+## Setup
 
-Just prefix this repository url with `gitpod.io/#` to launch a fully configured remote workspace.
-
-### Local development
-
-- Download workspace artifact 
-- Extract workspace which includes source and project configuration
-- Inside workspace root dir, create following symlinks
-```
-    ln -s lib/esp32-toolkit-lib/.config/platformio.ini platformio.ini
-    ln -s lib/esp32-toolkit-lib/.config/.gitmodules .gitmodules
-    ln -s lib/esp32-toolkit-lib/.config/scripts/replace_fs.py replace_fs.py
-    mkdir src && ln -s ../lib/esp32-toolkit-lib/examples/firmware-main.cpp src/main.cpp
-```
-
-An installation of platformIO is required.
-
-Using python package installer `pip` :
-
-```
-    python -m pip install --upgrade pip
-    pip install --upgrade platformio
-```
-
-### Wifi configuration
-
-before uploading firmware and filesystem images, wifi settings must be customized in `data/config.json` file
-
+- download workspace artifact and extract it
+- after sourcing `.pio.env` install `plaftormIO` devenv with `pio-install` command
+- init workspace by running `pio-init-project` at project's root to create required symlinks 
+- connect your esp32 board to USB serial port in download mode
+- build and upload default firmware with `pio-upload-firmware`
+- customize `data/config.json` with your network credentials as follow:
 ```
 {
     wifiSSID: "changeme",
     wifiPWD: "changeme"
 }
 ```
+- build and upload FS image with `pio-upload-fs`
+- watch boot logs with `screen /dev/ttyUSB0` or any other way, and restart esp32 board in normal mode
+(providing `/dev/ttyUSB0` is the serial USB device)
+- board's IP address on local network should be shown in serial console if connection was successfull
 
-## Build
+Check that:
+- OTA service is available at board's local adress followed by `/update`
+- default welcome page is reachable at `/index` url
 
-### firmware
+If all preceding worked, firmware was successfully uploaded to the board, the config was loaded correctly, the board managed to connect to local network and its services started correctly.
 
-``` pio run -e esp32-latest ```
+Note that serial flashing won't be required anymore to update the board as `OTA flash` can be used instead.
 
-resulting build file located at `.pio/build/esp32-latest/firmware.bin`
+## Advanced tips
 
-### filesystem image
+### Alternative serial flashing
 
-``` pio run -t buildfs -e esp32-latest ```
+Particularly convenient if firmware is developed on remote server which isn't connected to esp32 device directly.
 
-resulting image file located at `.pio/build/esp32-latest/spiffs.bin`
+In that case built files can be transferred from dev server to a local machine having access to esp32 and uploaded using chrome browser serial capabilities: 
 
-## Upload
-First time, device must be updated manually using serial upload, then it can be updated directly using OTA method.
-### Serial
-Upload 2 previous image files (`firmware.bin` and `spiffs.bin`) to the board.
+Firmware bin
+- location: `.pio/build/esp32-latest/firmware.bin`
+- flash address: `0x10000`
 
-- firmware:
-``` pio run -e esp32-latest -t upload ```
-- filesystem image:
-```pio run -e esp32-latest -t uploadfs ```
-### OTA
-If wifi settings were correctly set in `config.json` file, device can be updated directly using Web updater available at: `http://<board IP>/update`
+FS image:
+- location: `.pio/build/esp32-latest/`
+- flash address: `0x`
 
-(device ip address is automatically displayed over serial interface on each boot).
+### Architecture
 
-In web interface, select either `firmware` and `firmware.bin` file to update firmware, or `filesystem` and `spiffs.bin` image file to update filesystem,
-
-## Device Monitoring
-
-Serial monitoring can be done from console:
-
-`cat /dev/ttyUSB0`
-
-make sure your user has access to serial interface by adding him to the correct group.
-
-## Key features and embedded libraries
-The lib makes use of the following libs:
-- latest [arduino-esp32](https://github.com/espressif/arduino-esp32) framework ([docs](https://docs.espressif.com/projects/arduino-esp32/en/latest/)): mandatory to use littleFS (not available to date in PIO)
-- `littleFS` filesystem with strong advantage (over SPIFFS) to support directories. 
-- `ArduinoJson`: support for JSON
-
-## Architecture
+Firmware inner feats:
+- `JSON` support
+- `LittleFS` as internal FS
 
 The firmware architecture is made of different modules and services.
 A module inherits the `FirmwareModule` class and can overrides `setup`, `loop` methods to provide its own implementation.
 In a similar way, a service provides a custom implementation of another service such as `WebSocketService`.
 
-
-### Core modules
-The firmware can embedd several core modules which implements main device features:
-
-- network: provides wifi connectivity in both AP (Access Point) and STA (Client) modes
-- filesystem: LittleFS
-- webserver
-- WebSockets Service
-- OTA service
-
-### Custom modules
-On top of these core modules, firmware can be easily extended through custom modules to provide additional features (such as specific sensor support, ...).
+On top of core modules, firmware can be easily extended through custom modules to provide additional features (such as specific sensor support, ...).
 To get included in the main update loop, a custom module inherits the `FirmwareModule` class.
 As C++ allows multiple inheritance, it can also inherit a service to make use of it.
 
-For instance a module requiring acceess to websockets, will inherit both `FirmwareModule` and `WebSocketService` which will forward 
-received message to process them.
-
-## Purpose of this project
-
-- ready to code workspace (available as build artifacts)
-- as less as boilerplate code possible
-- fully automated build process
-- easy to maintain and customize 
+For instance a module requiring acceess to websockets, will inherit both `FirmwareModule` and `WebSocketService` which will forward received message to process them.
