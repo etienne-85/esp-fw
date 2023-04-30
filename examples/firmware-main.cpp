@@ -6,9 +6,9 @@
 #include <FirmwareModule.h>
 #include <filesys-module.h>
 #include <network-module.h>
-#include <WebServices.cpp> // need to use cpp instead of header here due to template use
-#include <core-services.h>
-// #include <GpioService.h>
+#include <WebServer.h> 
+#include <WebSocketListener.h> 
+#include <web-services-core.h>
 // #include <module-template.h>
 
 // Core modules
@@ -19,8 +19,7 @@ NetworkModule networkModule;
 // TemplateModule testModule;
 
 // Core services
-WebSocketListener<> *wsl;
-JsonWebSocketListener<> *jwsl;
+WebSocketListener *wsl;
 
 
 /**
@@ -28,30 +27,31 @@ JsonWebSocketListener<> *jwsl;
  */
 void setup() {
   Serial.begin(115200);
-  Serial.println("[ESP32] First log!");
+  Serial.println("*******************************");
+  Serial.println("*** ESP32 Firmware build: a ***");
+  Serial.println("*******************************");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   // Core modules
-  Serial.println("[ESP32] Init core modules ");
+  Serial.println("[Setup] Init core modules ");
   FirmwareModule::setupAll();
-  Serial.println("[ESP32] Start core services ");
-  WebService<>::start();
-  StaticServer<> staticServer;
+  Serial.println("[Setup] Start core services ");
+  WebServer::getDefault().start();
+  StaticServer staticServer;
   staticServer.init();
-  OTAServiceWrapper<> otaService;
+  OTAServiceWrapper otaService;
   otaService.init();
-  WebSocketService<> wss;
-  wsl = new WebSocketListener<>();
-  jwsl = new JsonWebSocketListener<>();
-  Serial.println("[ESP32] Done loading services");
-  Serial.println("[BuildTag] abcde");
+  // WebSocketService<> wss;
+  // WebSocketService &wss = WebSocketService::instance("/test");
+  wsl = WebSocketListener::instance("/test");
+  Serial.println("[Setup] Done");
 }
 
 /**
  * main loop
  */
 void loop() {
-  WebSocketService<>::aws.cleanupClients();
+  wsl->webSocket.cleanupClients();
   // WebSocketListener<80, wsPath>::asyncListenForwardLoop();
   // Refresh all core modules
   FirmwareModule::loopAll();

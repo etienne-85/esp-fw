@@ -1,24 +1,25 @@
 # esp32-toolkit-lib
-Ready to use ESP32 firmware, with out-of-the-box support for:
+ESP32 firmware with built-in support for:
 - external config loader
 - network connection (both AP and STA mode)
-- OTA updater to ease firmware deployment
+- OTA updater for easy firmware deployment
 - static file server hosting custom web-app inside esp32
 - realtime communications through websockets
 - remote control of GPIO to support new hardware without having to change any firmware code
 
-Firmware designed 
-- to cover most uses cases, avoiding as much as possible low-level firmware code writing.
-- to provide a modular architecture to easily extend firmware's core features 
+Designed for
+- minimizing firmware coding.
+- up and running ESP32 dev workspace out of the box
+- modular architecture to easily extend firmware's core features 
 
 ## Usage
 
-A script `.pio.env` is provided to provide access to following commands:
+`.pio.env` script provides access to following commands:
 - `pio-install`: install platform io (should only be run once)
 - `pio-build-firmware`: build firmware 
 - `pio-build-fs`: build image to embedd config and static web content into esp32's filesystem
-- `pio-upload-firmware`:
-- `pio-upload-fs`:
+- `pio-upload-firmware`
+- `pio-upload-fs`
 
 ## Setup
 
