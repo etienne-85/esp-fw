@@ -1,11 +1,14 @@
-# esp32-toolkit-lib
-ESP32 firmware with built-in support for:
+# esp32-gpio-over-ws
+Or `esp32-remote-controls`, `esp32-controls-ota`, `esp32-gpio-ota`, `esp32-ws-controls`, `esp32-remote-gpio`, `esp32-full-remote`, `esp32-ws-rc-gpio`, `esp32-universal-controls`, `esp32-gpio-over-ws`
+Remote control OTA of ESP32 GPIOs using websockets
+Built-in firmware support for:
 - external config loader
-- network connection (both AP and STA mode)
-- OTA updater for easy firmware deployment
-- static file server hosting custom web-app inside esp32
+- Filesystem
+- wifi (both AP and STA mode)
+- OTA firmware deployment 
+- web-app hosting through static web server 
 - realtime communications through websockets
-- remote control of GPIO to support new hardware without having to change any firmware code
+- support new hardware without changing any firmware code through ws-remote-GPIOs
 
 Designed for
 - minimizing firmware coding.

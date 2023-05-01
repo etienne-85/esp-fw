@@ -7,8 +7,9 @@
 #include <filesys-module.h>
 #include <network-module.h>
 #include <WebServer.h> 
-#include <WebSocketListener.h> 
+// #include <WebSocketListener.h> 
 #include <web-services-core.h>
+#include <GpioRemoteService.h>
 // #include <module-template.h>
 
 // Core modules
@@ -44,6 +45,7 @@ void setup() {
   // WebSocketService<> wss;
   // WebSocketService &wss = WebSocketService::instance("/test");
   wsl = WebSocketListener::instance("/test");
+  GpioRemoteService::instance();
   Serial.println("[Setup] Done");
 }
 
