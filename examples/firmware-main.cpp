@@ -1,15 +1,15 @@
 #include "soc/rtc_cntl_reg.h" // Disable brownour problems
 #include "soc/soc.h"          // Disable brownour problems
 #include <Arduino.h>
-#include <iostream>
 #include <ConfigLoader.h>
 #include <FirmwareModule.h>
+#include <WebServer.h>
 #include <filesys-module.h>
+#include <iostream>
 #include <network-module.h>
-#include <WebServer.h> 
-// #include <WebSocketListener.h> 
-#include <web-services-core.h>
+// #include <WebSocketListener.h>
 #include <GpioRemoteService.h>
+#include <web-services-core.h>
 // #include <module-template.h>
 
 // Core modules
@@ -21,7 +21,6 @@ NetworkModule networkModule;
 
 // Core services
 WebSocketListener *wsl;
-
 
 /**
  * setup
