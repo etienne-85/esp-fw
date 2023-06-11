@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -42,7 +44,7 @@ public:
   int res = 8;
   int channel = 0;
 
-  GpioPwmPin(int pin, int channel, int freq = 10000, int res = 8);
+  GpioPwmPin(int pin, int chan, int freq = 10000, int res = 8);
 
   void write(int dutyCycle = 0);
 

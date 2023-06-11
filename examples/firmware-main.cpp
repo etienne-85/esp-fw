@@ -28,7 +28,7 @@ WebSocketListener *wsl;
 void setup() {
   Serial.begin(115200);
   Serial.println("*******************************");
-  Serial.println("*** ESP32 Firmware build: a ***");
+  Serial.println("*** ESP32 Firmware build: d ***");
   Serial.println("*******************************");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);

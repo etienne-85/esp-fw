@@ -41,22 +41,25 @@ GpioPin *GpioFactory::pinFind(int pin) {
  * - missing => calling specific pin constructor
  */
 GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
+    // std::cout << "[GpioFactory::pinAlloc] raw pin data: "<< pinData << std::endl;
+  // std::cout << "[GpioFactory::pinAlloc] pin: "<< pin << std::endl;
   GpioPin *pinInstance = GpioFactory::pinFind(pin);
   StaticJsonDocument<JSON_SIZE> pinRoot;
   // unpack json pin config
   deserializeJson(pinRoot, pinData);
 
   if (pinInstance == NULL) {
+    // std::cout << "[GpioFactory::pinAlloc] create instance for pin "<< pin << std::endl;
     pinInstance =
         pinRoot["type"] == 1
             ? (GpioPin *)(new GpioPwmPin(pin, pinRoot["chan"], pinRoot["freq"],
                                          pinRoot["res"]))
             : new GpioPin(pin);
     GpioFactory::pins.insert({pin, pinInstance});
-    std::cout << "total registered gpios: " << GpioFactory::pins.size()
+    std::cout << "[GpioFactory::pinAlloc] Total registered gpios: " << GpioFactory::pins.size()
               << std::endl;
   } else {
-    std::cout << "can't allocate already allocated pin #" << pin << std::endl;
+    std::cout << "pin #" << pin << " already allocated " << std::endl;
   }
 
   return pinInstance;
