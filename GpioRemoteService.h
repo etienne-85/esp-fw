@@ -16,7 +16,7 @@
 #include <iostream>
 #include <string>
 
-#define JSON_SIZE DEFAULT_JSON_SIZE
+// #define JSON_SIZE DEFAULT_JSON_SIZE
 #define JSON_MSG_SIZE DEFAULT_JSON_SIZE
 
 /**
@@ -45,25 +45,29 @@ GpioRemoteService &GpioRemoteService::instance() {
   return singleton;
 }
 /*
-* pin operation requirements
-* required  |  instance exists | Static/Instance level  |  pinData | auto mode
-* ----------+------------------+------------------------+----------+--------------------------+
+ * pin operation requirements
+ * required  |  instance exists | Static/Instance level  |  pinData | auto mode
+ * ----------+------------------+------------------------+----------+--------------------------+
 * alloc               N                 S                     x       pin conf provided
 * read                Y                 I                             pin instance exists
 * write               Y                 I                     x       pin instance exists
 * free                Y                 S
-* dump                Y                 I      
-*/
+ * dump                Y                 I
+ */
 // unpack or extract data from message
 std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
-  Serial.println("[GpioService] incoming message");
+  // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " << incomingMsg
+  //           << std::endl;
   StaticJsonDocument<JSON_MSG_SIZE> root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
 
-  std::string cmd = root["cmd"];     // for operation not tied to any pin
-  std::string msgId = root["msgId"]; // in case reply is needed
-  JsonObject pinsData = root["pinsData"];
+  // root level props
+  // std::string cmd = root["cmd"];     // for operation not tied to any pin
+  std::string msgRefId = root["msgRefId"]; // in case reply is needed
+  JsonObject jsPinsBatch = root["pinsBatch"];
+  // std::cout << "[GpioRemoteService::unpackMsg] msgRefID " << msgRefId
+  //           << std::endl;
 
   // JsonArray array = jsonMsg["gpios"];
   //     for (JsonVariant gpio : array) {
@@ -73,32 +77,30 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
   //       Gpio::parseAll(pinConfig);
   //     }
 
-  // passdown pin data to corresponding instance or make static call
-  // hash pins
-  for (JsonPair kv : pinsData) {
+  // hash pins batch and passdown pin data to corresponding instance
+  // or make static call
+  for (JsonPair kv : jsPinsBatch) {
+    // key/value
     int pin = std::stoi(kv.key().c_str());
-
     // extract pin data
     JsonObject jsPinData = kv.value().as<JsonObject>();
-    Serial.println(kv.key().c_str());
-
-    const char *pinOp = jsPinData["op"]; //.as<char>(); // per pin operation
 
     GpioPin *pinInstance = GpioFactory::pinFind(pin);
 
-    std::string sPinData;
-    // pack/encode/serialize pinData as string
-    serializeJson(jsPinData, sPinData);
+    // returned value of pin operation if applicable
     std::string *sPinRes = NULL;
 
+    const char *pinOp = jsPinData["op"];
     switch (*pinOp) {
-    // INSTANCE must NOT exist
     case 'a': // alloc
     {
+      // std::cout << "[GpioRemoteService::unpackMsg] -> pinAlloc " << std::endl;
+      // pack/encode/serialize for pin data forwarding
+      std::string sPinData;
+      serializeJson(jsPinData, sPinData);
       pinInstance = GpioFactory::pinAlloc(pin, sPinData); // [static]
       break;
     }
-    // INSTANCE REQUIRED:
     case 'r': // read
     {
       // Gpio::pinRead(pin);
@@ -108,6 +110,7 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
     }
     case 'w': // write
     {
+      // std::cout << "[GpioRemoteService::unpackMsg] pin write " << std::endl;
       int pinVal = jsPinData["val"];
       // Gpio::pinWrite(pin, data);
       pinInstance->write(pinVal);
@@ -127,6 +130,12 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
     }
     default: // missing pin op => auto pin action
     {
+      std::cout << "[GpioRemoteService::unpackMsg] no OP provided defaulting "
+                   "to pinAuto mode "
+                << std::endl;
+      // pack/encode/serialize for pin data forwarding
+      std::string sPinData;
+      serializeJson(jsPinData, sPinData);
       int retVal = GpioFactory::pinAuto(pin, sPinData);
       if (retVal == -1) {
         std::cout << "FAILED auto mode for pin " << pin << std::endl;

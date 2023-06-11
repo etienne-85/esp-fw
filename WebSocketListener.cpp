@@ -63,15 +63,21 @@ void WebSocketListener::eventHandler(AsyncWebSocket *server,
   std::string wsRoute(server->url());
   switch (type) {
   case WS_EVT_CONNECT:
-    Serial.printf("[WebSocket] client #%u connected from %s\n", client->id(),
-                  client->remoteIP().toString().c_str());
+    std::cout << "[WebSocketListener:" << wsRoute << "] Client #"
+              << client->id() << " connected from "
+              << client->remoteIP().toString().c_str() << std::endl;
     break;
   case WS_EVT_DISCONNECT:
-    Serial.printf("[WebSocket] client #%u disconnected\n", client->id());
+    std::cout << "[WebSocketListener:" << wsRoute << "] Client #"
+              << client->id() << " discconnected" << std::endl;
     break;
   case WS_EVT_DATA:
-    Serial.println("[WebSocket] Data received");
+    std::cout << std::endl;
+    std::cout << "[WebSocketListener:" << wsRoute << "] *** RECEIVED MSG ***"
+              << std::endl;
     dispatchMsg(arg, data, len, client->id(), wsRoute);
+    std::cout << "[WebSocketListener:" << wsRoute << "] *** END PROCESSING MSG ***"
+              << std::endl;
     // dispatch(arg, data, len);
     break;
   case WS_EVT_PONG:
@@ -88,9 +94,9 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len,
     data[len] = 0;
     // convert raw data input
     std::string rawMsg(data, data + len);
-    std::cout << "[WebSocketListener] Forwarding message received from client #"
-              << clientId << " to registered listener for route " << route
-              << std::endl;
+    // std::cout << "[WebSocketListener::dispatch:" << route
+    //           << "] Forwarding message received from client #" << clientId
+    //           << " to registered listener" << std::endl;
     /*** Forward message to all listeners ***/
     // singleton option
     // if (instance != nullptr)
@@ -104,8 +110,8 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len,
     if (recipient != NULL) {
       recipient->unpackMsg(rawMsg);
     } else {
-      std::cout << "[WebSocketListener] no registered listener for route "
-                << route << std::endl;
+      std::cout << "[WebSocketListener::dispatch:" << route
+                << "] no registered listener for route " << route << std::endl;
     }
     // multiple external listeners option
     // for (auto wsl : *WebSocketListener<WS_PORT, WS_PATH>::instances) {
@@ -115,12 +121,13 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len,
     // rawMessage = rawMsg;
     // messageCount++;
     /*** Dispatch message to all connected clients ***/
-    std::string replyMsg =
-        ""; // "Message processed by " + std::to_string(wsListeners->size()) + "
-            // wsservices";
-    std::cout
-        << "[WebSocketListener > dispatch] reply to all connected clients "
-        << replyMsg << std::endl;
+    // std::cout << "[WebSocketListener::dispatch:" << route
+    //           << "] *** MSG REPLY ***" << std::endl;
+    std::string replyMsg = "";
+    // "Message processed by " + std::to_string(wsListeners->size()) + "
+    // wsservices";
+    // std::cout << "[WebSocketListener::dispatch:" << route
+    //           << "] reply to all connected clients " << replyMsg << std::endl;
     // notify server response to all connected clients
     // String dataOut(replyMsg.c_str());
     // aws.textAll(dataOut);
