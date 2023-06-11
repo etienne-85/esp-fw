@@ -1,5 +1,5 @@
-#include <WebSocketListener.h>
 #include <WebServer.h>
+#include <WebSocketListener.h>
 #include <cstddef>
 #include <ostream>
 
@@ -17,15 +17,18 @@
 //     WebSocketService<SERVER_PORT, SOCKET_PATH>::wsListeners =
 //         new std::vector<WebSocketListener *>();
 
-std::map<std::string, WebSocketListener *> *WebSocketListener::recipients = new std::map<std::string, WebSocketListener *>();
+std::map<std::string, WebSocketListener *> *WebSocketListener::recipients =
+    new std::map<std::string, WebSocketListener *>();
 
 /*
-* private constructor:
-* - create new websocket
-* - register websocket to default webserver
-*/
-WebSocketListener::WebSocketListener(std::string routeKey):webSocket(routeKey.c_str())  {
-  std::cout << "[WebSocketListener] create listener for route " << routeKey << std::endl;
+ * private constructor:
+ * - create new websocket
+ * - register websocket to default webserver
+ */
+WebSocketListener::WebSocketListener(std::string routeKey)
+    : webSocket(routeKey.c_str()) {
+  std::cout << "[WebSocketListener] create listener for route " << routeKey
+            << std::endl;
   WebServer::getDefault().webServer.addHandler(&webSocket);
   webSocket.onEvent(eventHandler);
   (*WebSocketListener::recipients)[routeKey] = this;
@@ -41,17 +44,22 @@ WebSocketListener::WebSocketListener(std::string routeKey):webSocket(routeKey.c_
 WebSocketListener *WebSocketListener::instance(std::string routeKey) {
   auto match = WebSocketListener::recipients->find(routeKey);
   // check if service already exists, otherwise create one
-  return match != WebSocketListener::recipients->end()? match->second : new WebSocketListener(routeKey);
+  return match != WebSocketListener::recipients->end()
+             ? match->second
+             : new WebSocketListener(routeKey);
 }
 
 WebSocketListener *WebSocketListener::findRecipient(std::string route) {
   auto match = WebSocketListener::recipients->find(route);
-  return match != WebSocketListener::recipients->end()? (*WebSocketListener::recipients)[route]: NULL;
+  return match != WebSocketListener::recipients->end()
+             ? (*WebSocketListener::recipients)[route]
+             : NULL;
 }
 
-void WebSocketListener::eventHandler(
-    AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
-    void *arg, uint8_t *data, size_t len) {
+void WebSocketListener::eventHandler(AsyncWebSocket *server,
+                                     AsyncWebSocketClient *client,
+                                     AwsEventType type, void *arg,
+                                     uint8_t *data, size_t len) {
   std::string wsRoute(server->url());
   switch (type) {
   case WS_EVT_CONNECT:
@@ -72,7 +80,8 @@ void WebSocketListener::eventHandler(
   }
 }
 
-void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len, int clientId, std::string route) {
+void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len,
+                                    int clientId, std::string route) {
   AwsFrameInfo *info = (AwsFrameInfo *)arg;
   if (info->final && info->index == 0 && info->len == len &&
       info->opcode == WS_TEXT) {
@@ -80,8 +89,9 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len, int cl
     // convert raw data input
     std::string rawMsg(data, data + len);
     std::cout << "[WebSocketListener] Forwarding message received from client #"
-              << clientId << " to registered listener for route " << route << std::endl;
-    /*** Forward message to all listeners ***/ 
+              << clientId << " to registered listener for route " << route
+              << std::endl;
+    /*** Forward message to all listeners ***/
     // singleton option
     // if (instance != nullptr)
     // instance->processMsg(rawMsg);
@@ -91,10 +101,11 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len, int cl
     // }
     // unique external listener
     auto recipient = WebSocketListener::findRecipient(route);
-    if(recipient != NULL){
-      recipient->processMsg(rawMsg);
+    if (recipient != NULL) {
+      recipient->unpackMsg(rawMsg);
     } else {
-      std::cout << "[WebSocketListener] no registered listener for route "<< route << std::endl;
+      std::cout << "[WebSocketListener] no registered listener for route "
+                << route << std::endl;
     }
     // multiple external listeners option
     // for (auto wsl : *WebSocketListener<WS_PORT, WS_PATH>::instances) {
@@ -103,30 +114,32 @@ void WebSocketListener::dispatchMsg(void *arg, uint8_t *data, size_t len, int cl
     // external async listening option
     // rawMessage = rawMsg;
     // messageCount++;
-    /*** Dispatch message to all connected clients ***/ 
+    /*** Dispatch message to all connected clients ***/
     std::string replyMsg =
         ""; // "Message processed by " + std::to_string(wsListeners->size()) + "
             // wsservices";
-    std::cout << "[WebSocketListener > dispatch] reply to all connected clients "
-              << replyMsg << std::endl;
+    std::cout
+        << "[WebSocketListener > dispatch] reply to all connected clients "
+        << replyMsg << std::endl;
     // notify server response to all connected clients
     // String dataOut(replyMsg.c_str());
     // aws.textAll(dataOut);
   }
 }
 
-std::string 
+std::string
 // WebSocketListener<WS_PORT, WS_PATH>::processMsg(std::string rawMsg) {
-WebSocketListener::processMsg(std::string rawMsg) {
+WebSocketListener::unpackMsg(std::string rawMsg) {
   std::cout << "[WebSocketListener > processMsg]" << rawMsg << std::endl;
   return std::string("msg handler Not Implemented");
 }
 
 void WebSocketListener::listen(int wsPort, const char *wsPath) {
-  std::cout << "[WebSocketListener] listening on /"<< wsPath<< ":" << wsPort  << std::endl;
+  std::cout << "[WebSocketListener] listening on /" << wsPath << ":" << wsPort
+            << std::endl;
 }
 
-// internal handler to be overriden in children class 
+// internal handler to be overriden in children class
 // template <int SERVER_PORT, const char *SOCKET_PATH>
 // std::string
 // WebSocketService<SERVER_PORT, SOCKET_PATH>::processMsg(std::string rawMsg) {
@@ -134,7 +147,6 @@ void WebSocketListener::listen(int wsPort, const char *wsPath) {
 //             << "] <processMsg> " << rawMsg << std::endl;
 //   return std::string("msg handler Not Implemented");
 // }
-
 
 /**
  * WebSocketListener
@@ -176,9 +188,6 @@ void WebSocketListener<WS_PORT, WS_PATH>::asyncListenForwardLoop() {
 */
 // template <int WS_PORT, const char *WS_PATH>
 
-
 // WebSocketListener::dispatchMsg(std::string msg, std::string dest) {
 //   (*WebSocketListener::instances)[dest]->
 // }
-
-
