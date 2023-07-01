@@ -20,14 +20,18 @@ class GpioPin {
 
 public:
   int pin;
+  int value;
+  int defaultValue = -1;
 
-  GpioPin(int pin);
+  GpioPin(int pin, int defaultValue = -1);
 
   virtual int read();
 
   virtual void write(int val);
 
   virtual int autoMode(int val);
+
+  virtual void reset();
 
   // #TODO Decide wether should be moved to GpioFactory or GpioRemoteService
   std::string dump();
@@ -39,14 +43,14 @@ public:
 
 class GpioPwmPin : GpioPin {
 public:
-  int dutyCycle = 0;
   int freq = 10000;
   int res = 8;
   int channel = 0;
 
-  GpioPwmPin(int pin, int chan, int freq = 10000, int res = 8);
+  GpioPwmPin(int pin, int chan, int freq = 10000, int res = 8,
+             int defaultValue = -1);
 
-  void write(int dutyCycle = 0);
+  void write(int value = 0);
 
   void parse(std::string pinConfStr);
 

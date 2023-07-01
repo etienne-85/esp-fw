@@ -28,11 +28,14 @@ class GpioRemoteService : WebSocketListener {
 protected:
   // making service available at /gpio
   GpioRemoteService() : WebSocketListener("/gpio"){};
+  int resetCycles = 0; // hearbeats delay or after how many cycles pins should
+                       // be reset to their default value
+  int cyclesCount = 0;
 
 public:
   // overidding base class default method
   std::string unpackMsg(std::string rawMsg);
-
+  void loop();
   static GpioRemoteService &instance();
 };
 
@@ -48,22 +51,22 @@ GpioRemoteService &GpioRemoteService::instance() {
  * pin operation requirements
  * required  |  instance exists | Static/Instance level  |  pinData | auto mode
  * ----------+------------------+------------------------+----------+--------------------------+
-* alloc               N                 S                     x       pin conf provided
-* read                Y                 I                             pin instance exists
-* write               Y                 I                     x       pin instance exists
-* free                Y                 S
+ * alloc               N                 S                     x       pin conf
+ * provided read                Y                 I pin instance exists write Y
+ * I                     x       pin instance exists free                Y S
  * dump                Y                 I
  */
 // unpack or extract data from message
 std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
-  // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " << incomingMsg
+  // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
+  // incomingMsg
   //           << std::endl;
   StaticJsonDocument<JSON_MSG_SIZE> root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
 
   // root level props
-  // std::string cmd = root["cmd"];     // for operation not tied to any pin
+  std::string cmd = root["cmd"];           // for operation not tied to any pin
   std::string msgRefId = root["msgRefId"]; // in case reply is needed
   JsonObject jsPinsBatch = root["pinsBatch"];
   // std::cout << "[GpioRemoteService::unpackMsg] msgRefID " << msgRefId
@@ -76,6 +79,16 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
   //       // Gpio.assignPin(pinConfig)
   //       Gpio::parseAll(pinConfig);
   //     }
+
+  if (cmd == "heartbeat") {
+    // keep last command alive before pin is reset to default value
+    cyclesCount = 0;
+  } else if (cmd == "config") {
+    JsonObject config = root["config"];
+    resetCycles = config["resetCycles"];
+    std::cout << "[GpioRemoteService::unpackMsg] Pins reset cycle set to "
+              << resetCycles << std::endl;
+  }
 
   // hash pins batch and passdown pin data to corresponding instance
   // or make static call
@@ -94,8 +107,8 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
     switch (*pinOp) {
     case 'a': // alloc
     {
-      // std::cout << "[GpioRemoteService::unpackMsg] -> pinAlloc " << std::endl;
-      // pack/encode/serialize for pin data forwarding
+      // std::cout << "[GpioRemoteService::unpackMsg] -> pinAlloc " <<
+      // std::endl; pack/encode/serialize for pin data forwarding
       std::string sPinData;
       serializeJson(jsPinData, sPinData);
       pinInstance = GpioFactory::pinAlloc(pin, sPinData); // [static]
@@ -150,6 +163,14 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
   // optional reply depending on pin operation
   std::string replyMsg("TODO");
   return replyMsg;
+}
+
+void GpioRemoteService::loop() {
+  if (cyclesCount <= resetCycles) {
+    cyclesCount++;
+  } else {
+    GpioFactory::resetPinsDefaults();
+  }
 }
 
 /******************

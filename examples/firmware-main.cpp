@@ -54,6 +54,7 @@ void setup() {
 void loop() {
   wsl->webSocket.cleanupClients();
   // WebSocketListener<80, wsPath>::asyncListenForwardLoop();
-  // Refresh all core modules
-  FirmwareModule::loopAll();
+  // Refresh modules and services
+  FirmwareModule::loopAll();            // core
+  GpioRemoteService::instance().loop(); // gpio service
 }
