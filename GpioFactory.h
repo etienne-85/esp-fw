@@ -1,8 +1,8 @@
 #include <ArduinoJson.h>
+#include <GpioPin.h>
 #include <defaults.h>
 #include <map>
 #include <string>
-#include <GpioPin.h>
 // #include <miscUtils.h>
 #define JSON_SIZE DEFAULT_JSON_SIZE
 
@@ -18,6 +18,7 @@ public:
   static GpioPin *pinAlloc(int pin, std::string pinData);
   static void pinFree(int pin);
   static int pinAuto(int pin, std::string pinData);
+  static void resetPinsDefaults();
 };
 
 /**************************
@@ -41,7 +42,8 @@ GpioPin *GpioFactory::pinFind(int pin) {
  * - missing => calling specific pin constructor
  */
 GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
-    // std::cout << "[GpioFactory::pinAlloc] raw pin data: "<< pinData << std::endl;
+  // std::cout << "[GpioFactory::pinAlloc] raw pin data: "<< pinData <<
+  // std::endl;
   // std::cout << "[GpioFactory::pinAlloc] pin: "<< pin << std::endl;
   GpioPin *pinInstance = GpioFactory::pinFind(pin);
   StaticJsonDocument<JSON_SIZE> pinRoot;
@@ -49,15 +51,16 @@ GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
   deserializeJson(pinRoot, pinData);
 
   if (pinInstance == NULL) {
-    // std::cout << "[GpioFactory::pinAlloc] create instance for pin "<< pin << std::endl;
+    // std::cout << "[GpioFactory::pinAlloc] create instance for pin "<< pin <<
+    // std::endl;
     pinInstance =
         pinRoot["type"] == 1
             ? (GpioPin *)(new GpioPwmPin(pin, pinRoot["chan"], pinRoot["freq"],
                                          pinRoot["res"]))
             : new GpioPin(pin);
     GpioFactory::pins.insert({pin, pinInstance});
-    std::cout << "[GpioFactory::pinAlloc] Total registered gpios: " << GpioFactory::pins.size()
-              << std::endl;
+    std::cout << "[GpioFactory::pinAlloc] Total registered gpios: "
+              << GpioFactory::pins.size() << std::endl;
   } else {
     std::cout << "pin #" << pin << " already allocated " << std::endl;
   }
@@ -105,4 +108,14 @@ int GpioFactory::pinAuto(int pin, std::string sPinData) {
  */
 void GpioFactory::pinFree(int pin) {
   // TODO call destructor to free pin
+}
+
+/**
+ * Watch pins for auto reset
+ */
+void GpioFactory::resetPinsDefaults() {
+  for (auto const &pin : GpioFactory::pins) {
+    GpioPin *pinInstance = pin.second;
+    pinInstance->reset();
+  }
 }

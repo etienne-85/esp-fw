@@ -5,7 +5,8 @@
  */
 
 // TODO allocate corresponding hardware pin in constructor
-GpioPin::GpioPin(int pin) : pin(pin) {
+GpioPin::GpioPin(int pin, int defaultValue)
+    : pin(pin), defaultValue(defaultValue) {
   // Gpio::pins.insert({pin, this});
   std::cout << "[GpioPIN#" << pin << "::alloc]" << std::endl;
 }
@@ -45,13 +46,23 @@ int GpioPin::autoMode(int val) {
   return -1;
 }
 
+/*
+ *   Dump pin content
+ */
+void GpioPin::reset() {
+  if (defaultValue != -1) {
+    std::cout << "[GpioPin #" << pin << "] [reset] " << std::endl;
+    write(defaultValue);
+  }
+}
+
 /**
  *   PWM PIN
  */
 
 // #override base class constructor
-GpioPwmPin::GpioPwmPin(int pin, int chan, int freq, int res)
-    : GpioPin(pin), channel(chan), freq(freq), res(res) {
+GpioPwmPin::GpioPwmPin(int pin, int chan, int freq, int res, int defaultValue)
+    : GpioPin(pin, defaultValue), channel(chan), freq(freq), res(res) {
   std::cout << "[PwmPIN#" << pin << "::alloc] on chan #" << chan
             << " (freq:" << freq << ", res:" << res << ")" << std::endl;
   // pinMode(pin, OUTPUT);
@@ -61,8 +72,9 @@ GpioPwmPin::GpioPwmPin(int pin, int chan, int freq, int res)
 
 // #override base class write
 void GpioPwmPin::write(int dutyCycle) {
-  std::cout << "[PwmPIN#" << pin << "::write] dutyCycle: " << dutyCycle << std::endl;
-  this->dutyCycle = dutyCycle;
+  std::cout << "[PwmPIN#" << pin << "::write] dutyCycle: " << dutyCycle
+            << std::endl;
+  this->value = dutyCycle;
   ledcWrite(channel, dutyCycle);
 }
 
