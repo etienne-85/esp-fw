@@ -28,13 +28,15 @@ class GpioRemoteService : WebSocketListener {
 protected:
   // making service available at /gpio
   GpioRemoteService() : WebSocketListener("/gpio"){};
-  int resetCycles = 0; // hearbeats delay or after how many cycles pins should
-                       // be reset to their default value
-  int cyclesCount = 0;
+  // for how long pins are maintained in state before restored to default value
+  // '0' disables restoring default pin state
+  int resetCycles = 0;
+  int cyclesCount =
+      0; // internal cycle counter used for pin reset and benchmark
 
 public:
-  // overidding base class default method
-  std::string unpackMsg(std::string rawMsg);
+  // overiding default base class method
+  void unpackMsg(std::string rawMsg);
   void loop();
   static GpioRemoteService &instance();
 };
@@ -57,7 +59,7 @@ GpioRemoteService &GpioRemoteService::instance() {
  * dump                Y                 I
  */
 // unpack or extract data from message
-std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
+void GpioRemoteService::unpackMsg(std::string incomingMsg) {
   // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
   // incomingMsg
   //           << std::endl;
@@ -66,11 +68,11 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
   DeserializationError error = deserializeJson(root, incomingMsg);
 
   // root level props
-  std::string cmd = root["cmd"];           // for operation not tied to any pin
-  std::string msgRefId = root["msgRefId"]; // in case reply is needed
+  std::string cmd = root["cmd"];   // for operation not tied to any pin
+  int msgRefId = root["msgRefId"]; // in case reply is needed
   JsonObject jsPinsBatch = root["pinsBatch"];
-  // std::cout << "[GpioRemoteService::unpackMsg] msgRefID " << msgRefId
-  //           << std::endl;
+  std::cout << "[GpioRemoteService::unpackMsg] msgRefID " << msgRefId
+            << std::endl;
 
   // JsonArray array = jsonMsg["gpios"];
   //     for (JsonVariant gpio : array) {
@@ -80,9 +82,16 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
   //       Gpio::parseAll(pinConfig);
   //     }
 
-  if (cmd == "heartbeat") {
-    // keep last command alive before pin is reset to default value
-    cyclesCount = 0;
+  std::string replyMsg("Default reply from GpioRemoteService");
+
+  // Ping signal to:
+  // - maintain latest pin state
+  // - make sure service is still alive
+  // - get cycles count stats to benchmark ESP usage
+  if (cmd == "ping") {
+    replyMsg = "MSG_ID #" + std::to_string(msgRefId) + " CLI_ID #TODO" + " cycles #" +
+               std::to_string(cyclesCount);
+    cyclesCount = 0; // will maintain latest pin state
   } else if (cmd == "config") {
     JsonObject config = root["config"];
     resetCycles = config["resetCycles"];
@@ -161,14 +170,20 @@ std::string GpioRemoteService::unpackMsg(std::string incomingMsg) {
     }
   }
   // optional reply depending on pin operation
-  std::string replyMsg("TODO");
-  return replyMsg;
+  // if (msgRefId) {
+  //   std::string replyMsg("TODO");
+  // }
+  if (replyMsg.length()) {
+    String dataOut(replyMsg.c_str());
+    webSocket.textAll(dataOut);
+  }
 }
 
 void GpioRemoteService::loop() {
-  if (cyclesCount <= resetCycles) {
+  if (resetCycles == 0 || cyclesCount <= resetCycles) {
     cyclesCount++;
   } else {
+    // if no keep alive signal received after a while
     GpioFactory::resetPinsDefaults();
   }
 }
