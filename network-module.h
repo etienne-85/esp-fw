@@ -11,7 +11,7 @@ public:
 
   void setup() {
     Serial.println("[Network::setup] Begin");
-    // wifiAP();
+    wifiAP();
     wifiSTA();
     Serial.println("[Network::setup] Done");
   }
