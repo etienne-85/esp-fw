@@ -56,8 +56,8 @@ GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
     pinInstance =
         pinRoot["type"] == 1
             ? (GpioPin *)(new GpioPwmPin(pin, pinRoot["chan"], pinRoot["freq"],
-                                         pinRoot["res"]))
-            : new GpioPin(pin);
+                                         pinRoot["res"], pinRoot["default"]))
+            : new GpioPin(pin, pinRoot["default"]);
     GpioFactory::pins.insert({pin, pinInstance});
     std::cout << "[GpioFactory::pinAlloc] Total registered gpios: "
               << GpioFactory::pins.size() << std::endl;
