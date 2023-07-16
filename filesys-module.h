@@ -1,6 +1,6 @@
 #include <FirmwareModule.h>
 #include <LittleFS.h>
-#include <fs-utils.h>
+#include <FsUtils.h>
 
 class FilesysModule : public FirmwareModule
 {

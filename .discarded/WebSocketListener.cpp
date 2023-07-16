@@ -19,7 +19,7 @@ WebSocketListener::WebSocketListener(std::string routeKey)
     : webSocket(routeKey.c_str()) {
   std::cout << "[WebSocketListener] create listener for route " << routeKey
             << std::endl;
-  WebServer::getDefault().webServer.addHandler(&webSocket);
+  WebServer::instance().webServer.addHandler(&webSocket);
   webSocket.onEvent(eventHandler);
   (*WebSocketListener::recipients)[routeKey] = this;
 }

@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <GpioPin.h>
+#include <LogStore.h>
+
+using namespace std;
 /**
  *   BASE PIN
  */
@@ -8,7 +11,7 @@
 GpioPin::GpioPin(int pin, int defaultValue)
     : pin(pin), defaultValue(defaultValue) {
   // Gpio::pins.insert({pin, this});
-  std::cout << "[GpioPIN#" << pin << "::alloc]" << std::endl;
+  LogStore::info("[GpioPIN#" + to_string(pin) + "::alloc]");
 }
 
 // TODO write destructor which will unassign hardware pin
@@ -17,7 +20,7 @@ GpioPin::GpioPin(int pin, int defaultValue)
  *   Read pin value
  */
 int GpioPin::read() {
-  std::cout << "[GpioPin #" << pin << "] [read] " << std::endl;
+  LogStore::info("[GpioPin #" + to_string(pin) + "] [read] ");
   return -1;
 }
 
@@ -25,14 +28,14 @@ int GpioPin::read() {
  *   Write pin value
  */
 void GpioPin::write(int val) {
-  std::cout << "[GpioPin #" << pin << "] [write] " << val << std::endl;
+  LogStore::info("[GpioPin #" + to_string(pin) + "] [write] " + to_string(val));
 }
 
 /*
  *   Dump pin content
  */
 std::string GpioPin::dump() {
-  std::cout << "[GpioPin #" << pin << "] [dump] " << std::endl;
+  LogStore::info("[GpioPin #" + to_string(pin) + "] [dump] ");
   return NULL;
 }
 
@@ -51,7 +54,7 @@ int GpioPin::autoMode(int val) {
  */
 void GpioPin::reset() {
   if (defaultValue != -1) {
-    std::cout << "[GpioPin #" << pin << "] [reset] " << std::endl;
+    LogStore::info("[GpioPin #" + to_string(pin) + "] [reset] ");
     write(defaultValue);
   }
 }
@@ -63,8 +66,9 @@ void GpioPin::reset() {
 // #override base class constructor
 GpioPwmPin::GpioPwmPin(int pin, int chan, int freq, int res, int defaultValue)
     : GpioPin(pin, defaultValue), channel(chan), freq(freq), res(res) {
-  std::cout << "[PwmPIN#" << pin << "::alloc] on chan #" << chan
-            << " (freq:" << freq << ", res:" << res << ")" << std::endl;
+  LogStore::info("[PwmPIN#" + std::to_string(pin) + "::alloc] on chan #" +
+                 std::to_string(chan) + " (freq:" + std::to_string(freq) +
+                 ", res:" + std::to_string(res) + ")");
   // pinMode(pin, OUTPUT);
   ledcSetup(chan, freq, res);
   ledcAttachPin(pin, chan);
@@ -72,8 +76,8 @@ GpioPwmPin::GpioPwmPin(int pin, int chan, int freq, int res, int defaultValue)
 
 // #override base class write
 void GpioPwmPin::write(int dutyCycle) {
-  std::cout << "[PwmPIN#" << pin << "::write] dutyCycle: " << dutyCycle
-            << std::endl;
+  LogStore::info("[PwmPIN#" + std::to_string(pin) +
+                 "::write] dutyCycle: " + std::to_string(dutyCycle));
   this->value = dutyCycle;
   ledcWrite(channel, dutyCycle);
 }

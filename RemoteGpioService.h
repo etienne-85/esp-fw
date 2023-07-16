@@ -10,45 +10,131 @@
 #include <ArduinoJson.h>
 #include <GpioFactory.h>
 #include <GpioPin.h>
-#include <WebSocketListener.h>
-#include <cstddef>
+#include <HTTPSServer.hpp>
+#include <LogStore.h>
+#include <WebServer.h>
+#include <WebsocketHandler.hpp>
 #include <defaults.h>
-#include <iostream>
-#include <string>
 
 // #define JSON_SIZE DEFAULT_JSON_SIZE
 #define JSON_MSG_SIZE DEFAULT_JSON_SIZE
+
+// The HTTPS Server comes in a separate namespace. For easier use, include it
+// here.
+using namespace httpsserver;
 
 /**
  *   GpioRemoteService providing nterface between websockets and GPIOs:
  *   <WS MSG> => [GpioRemoteService::] => [GpioFactory::] => (GpioPin)
  */
-
-class GpioRemoteService : WebSocketListener {
-protected:
-  // making service available at /gpio
-  GpioRemoteService() : WebSocketListener("/gpio"){};
+/*
+ * All connected client to the service have dedicated ws handler
+ * but share same service
+ */
+class GpioRemoteService : public WebsocketHandler {
+  static std::map<int, GpioRemoteService *> instances;
+  static WebsocketNode *webSocketNode;
+  // this will be called each time new client connects to the /gpio websocket
+  static WebsocketHandler *onCreate();
   // for how long pins are maintained in state before restored to default value
   // '0' disables restoring default pin state
-  int resetCycles = 0;
-  int cyclesCount =
-      0; // internal cycle counter used for pin reset and benchmark
+  static int resetCycles;
+  // internal cycle counter used for pin reset and benchmark
+  static int cyclesCount;
 
 public:
+  static void init();
+  static void loop();
+
+  // =  new WebsocketNode("/gpio", &GpioRemoteService::instancePtr);
+
+private:
+  GpioRemoteService(int clientId);
+  int clientId = 0;
+
+  // making service available at /gpio
+  // GpioRemoteService() : WebsocketNode("/chat", &GpioRemoteService::create);
+  // GpioRemoteService(): WebsocketNode("/gpio", &GpioRemoteService::instance);
+  // static GpioRemoteService &instance();
+  // static WebsocketHandler *instancePtr();
+
+public:
+  // This method is called when a message arrives
+  void onMessage(WebsocketInputStreambuf *input);
+  // Handler function on connection close
+  void onClose();
   // overiding default base class method
-  void unpackMsg(std::string rawMsg);
-  void loop();
-  static GpioRemoteService &instance();
+  void extractMsg(std::string rawMsg);
+  // Reply to a ping message sent from client
+  void pong(std::string msg);
 };
 
 /**************************
  *** STATIC DEFINITIONS ***
  **************************/
+std::map<int, GpioRemoteService *> GpioRemoteService::instances;
+int GpioRemoteService::resetCycles(0);
+int GpioRemoteService::cyclesCount(0);
 
-GpioRemoteService &GpioRemoteService::instance() {
-  static GpioRemoteService singleton;
-  return singleton;
+WebsocketNode *GpioRemoteService::webSocketNode =
+    new WebsocketNode("/gpio", &GpioRemoteService::onCreate);
+
+// each time new client connects to the /gpio websocket a new service
+// instance is created
+WebsocketHandler *GpioRemoteService::onCreate() {
+  int clientNb = GpioRemoteService::instances.size();
+  GpioRemoteService *instance = NULL;
+  if (GpioRemoteService::instances.size() < MAX_CLIENTS) {
+    instance = new GpioRemoteService(clientNb);
+    GpioRemoteService::instances.insert({clientNb, instance});
+  } else {
+    LogStore::info(
+        "[GpioRemoteService::onCreate] max number of client reached #" +
+        std::to_string(clientNb));
+  }
+  // will be cast to WebsocketHandler*
+  return instance;
 }
+
+// GpioRemoteService &GpioRemoteService::instance() {
+//   static GpioRemoteService singleton;
+//   return singleton;
+// }
+
+// WebsocketHandler *GpioRemoteService::instancePtr() {
+//   return &GpioRemoteService::instance();
+// }
+
+GpioRemoteService::GpioRemoteService(int clientId)
+    : WebsocketHandler(), clientId(clientId) {
+  LogStore::info("[GpioRemoteService] new instance for client #" +
+                 std::to_string(clientId));
+}
+
+void GpioRemoteService::init() {
+  // register ws service to main secured server
+  WebServer::instance().secureServer.registerNode(webSocketNode);
+}
+
+void GpioRemoteService::loop() {
+  if (GpioRemoteService::resetCycles == 0 ||
+      GpioRemoteService::cyclesCount <= GpioRemoteService::resetCycles) {
+    GpioRemoteService::cyclesCount++;
+  } else {
+    // if no keep alive signal received after a while
+    GpioFactory::resetPinsDefaults();
+  }
+}
+
+// When the websocket is closing, we remove the client from the array
+void GpioRemoteService::onClose() {
+  // for(int i = 0; i < MAX_CLIENTS; i++) {
+  //   if (activeClients[i] == this) {
+  //     activeClients[i] = nullptr;
+  //   }
+  // }
+}
+
 /*
  * pin operation requirements
  * required  |  instance exists | Static/Instance level  |  pinData | auto mode
@@ -59,7 +145,19 @@ GpioRemoteService &GpioRemoteService::instance() {
  * dump                Y                 I
  */
 // unpack or extract data from message
-void GpioRemoteService::unpackMsg(std::string incomingMsg) {
+// Finally, passing messages around. If we receive something, we send it to all
+// other clients
+void GpioRemoteService::onMessage(WebsocketInputStreambuf *inbuf) {
+  // Get the input message
+  std::ostringstream ss;
+  std::string msg;
+  ss << inbuf;
+  msg = ss.str();
+
+  extractMsg(msg);
+}
+
+void GpioRemoteService::extractMsg(std::string incomingMsg) {
   // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
   // incomingMsg
   //           << std::endl;
@@ -71,8 +169,8 @@ void GpioRemoteService::unpackMsg(std::string incomingMsg) {
   std::string cmd = root["cmd"];   // for operation not tied to any pin
   int msgRefId = root["msgRefId"]; // in case reply is needed
   JsonObject jsPinsBatch = root["pinsBatch"];
-  std::cout << "[GpioRemoteService::unpackMsg] msgRefID " << msgRefId
-            << std::endl;
+  LogStore::info("[GpioRemoteService::unpackMsg] msgRefID " +
+                 std::to_string(msgRefId));
 
   // JsonArray array = jsonMsg["gpios"];
   //     for (JsonVariant gpio : array) {
@@ -89,14 +187,14 @@ void GpioRemoteService::unpackMsg(std::string incomingMsg) {
   // - make sure service is still alive
   // - get cycles count stats to benchmark ESP usage
   if (cmd == "ping") {
-    replyMsg = "MSG_ID #" + std::to_string(msgRefId) + " CLI_ID #TODO" + " cycles #" +
-               std::to_string(cyclesCount);
+    replyMsg = "MSG_ID #" + std::to_string(msgRefId) + " CLI_ID #TODO" +
+               " cycles #" + std::to_string(cyclesCount);
     cyclesCount = 0; // will maintain latest pin state
   } else if (cmd == "config") {
     JsonObject config = root["config"];
     resetCycles = config["resetCycles"];
-    std::cout << "[GpioRemoteService::unpackMsg] Pins reset cycle set to "
-              << resetCycles << std::endl;
+    LogStore::info("[GpioRemoteService::unpackMsg] Pins reset cycle set to " +
+                   std::to_string(resetCycles));
   }
 
   // hash pins batch and passdown pin data to corresponding instance
@@ -152,15 +250,14 @@ void GpioRemoteService::unpackMsg(std::string incomingMsg) {
     }
     default: // missing pin op => auto pin action
     {
-      std::cout << "[GpioRemoteService::unpackMsg] no OP provided defaulting "
-                   "to pinAuto mode "
-                << std::endl;
+      LogStore::info("[GpioRemoteService::unpackMsg] no OP provided defaulting "
+                     "to pinAuto mode ");
       // pack/encode/serialize for pin data forwarding
       std::string sPinData;
       serializeJson(jsPinData, sPinData);
       int retVal = GpioFactory::pinAuto(pin, sPinData);
       if (retVal == -1) {
-        std::cout << "FAILED auto mode for pin " << pin << std::endl;
+        LogStore::info("FAILED auto mode for pin " + std::to_string(pin));
       }
       std::string sPinVal(std::to_string(retVal));
       sPinRes = &sPinVal;
@@ -175,17 +272,20 @@ void GpioRemoteService::unpackMsg(std::string incomingMsg) {
   // }
   if (replyMsg.length()) {
     String dataOut(replyMsg.c_str());
-    webSocket.textAll(dataOut);
+    // webSocket.textAll(dataOut);
   }
 }
 
-void GpioRemoteService::loop() {
-  if (resetCycles == 0 || cyclesCount <= resetCycles) {
-    cyclesCount++;
-  } else {
-    // if no keep alive signal received after a while
-    GpioFactory::resetPinsDefaults();
-  }
+void GpioRemoteService::pong(std::string msg) {
+  LogStore::info("[GpioRemoteService] received message: " + msg);
+
+  // Send it back to every client
+  // for (int i = 0; i < MAX_CLIENTS; i++) {
+  //   if (activeClients[i] != nullptr) {
+  //     activeClients[i]->send(msg, SEND_TYPE_TEXT);
+  //   }
+  // }
+  this->send(msg, SEND_TYPE_TEXT);
 }
 
 /******************

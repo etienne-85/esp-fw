@@ -8,9 +8,13 @@
 #include <iostream>
 #include <network-module.h>
 // #include <WebSocketListener.h>
-#include <GpioRemoteService.h>
+#include <RemoteGpioService.h>
+#include <RemoteLogService.h>
+#include <RemoteFsService.h>
 #include <web-services-core.h>
 // #include <module-template.h>
+#include <CyclesCounter.h>
+#include <LogStore.h>
 
 // Core modules
 FilesysModule filesysModule;
@@ -20,41 +24,47 @@ NetworkModule networkModule;
 // TemplateModule testModule;
 
 // Core services
-WebSocketListener *wsl;
+// WebSocketListener *wsl;
 
 /**
  * setup
  */
 void setup() {
   Serial.begin(115200);
-  Serial.println("*******************************");
-  Serial.println("*** ESP32 Firmware build: d ***");
-  Serial.println("*******************************");
+  LogStore::info("*******************************");
+  LogStore::info("*** ESP32 Firmware build: d ***");
+  LogStore::info("*******************************");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   // Core modules
-  Serial.println("[Setup] Init core modules ");
+  LogStore::info("[Setup] Init core modules ");
   FirmwareModule::setupAll();
-  Serial.println("[Setup] Start core services ");
-  WebServer::getDefault().start();
-  StaticServer staticServer;
-  staticServer.init();
+  LogStore::info("[Setup] Start core services ");
+  WebServer::instance().init();
+  // GpioRemoteService::instance().init();
+  GpioRemoteService::init();
+  LogRemoteService::init();
+  FsRemoteService::init();
+  WebServer::instance().start();
+  // StaticServer staticServer;
+  // staticServer.init();
   OTAServiceWrapper otaService;
   otaService.init();
-  // WebSocketService<> wss;
-  // WebSocketService &wss = WebSocketService::instance("/test");
-  wsl = WebSocketListener::instance("/test");
-  GpioRemoteService::instance();
-  Serial.println("[Setup] Done");
+  // wsl = WebSocketListener::instance("/test");
+  // ChatHandler::init();
+  LogStore::info("[Setup] Done");
 }
 
 /**
  * main loop
  */
 void loop() {
-  wsl->webSocket.cleanupClients();
+  // wsl->webSocket.cleanupClients();
   // WebSocketListener<80, wsPath>::asyncListenForwardLoop();
   // Refresh modules and services
-  FirmwareModule::loopAll();            // core
-  GpioRemoteService::instance().loop(); // gpio service
+  FirmwareModule::loopAll(); // core
+  WebServer::instance().loop();
+  // ChatHandler::loop();
+  // GpioRemoteService::instance().loop(); // gpio service
+  CyclesCounter::inc();
 }
