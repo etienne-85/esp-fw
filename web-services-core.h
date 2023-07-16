@@ -14,7 +14,7 @@ public:
   void init() {
     std::string route("/update");
     std::cout << "[OTAUpdater] Starting OTA Update service" << std::endl;
-    AsyncElegantOTA.begin(&WebServer::getDefault().webServer);
+    AsyncElegantOTA.begin(&WebServer::instance().webServer);
     // state = true;
     std::cout << "[OTAUpdater] available at " << route << std::endl;
   }
@@ -46,11 +46,11 @@ public:
   void loadRoutes() {
     std::cout << "[StaticServer] Loading custom routes" << std::endl;
     // Route for root / web page
-    WebServer::getDefault().webServer.on(
+    WebServer::instance().webServer.on(
         "/", HTTP_GET, [](AsyncWebServerRequest *request) {
           request->send(LittleFS, "/index.html", "text/html", false);
         });
 
-    WebServer::getDefault().webServer.serveStatic("/", LittleFS, "/");
+    WebServer::instance().webServer.serveStatic("/", LittleFS, "/");
   }
 };

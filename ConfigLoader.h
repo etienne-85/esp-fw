@@ -3,7 +3,9 @@
 #include <FirmwareModule.h>
 #include <LittleFS.h>
 #include <WiFi.h>
-#include <iostream>
+#include <LogStore.h>
+#include <FsUtils.h>
+#include <defaults.h>
 #include <string>
 // #include "../../../Dont-Commit-Me.h"
 /**
@@ -20,15 +22,15 @@ public:
    *   Load config from external file stored on device FS
    */
   void setup() {
-    Serial.println("[ConfigLoader] loading");
+    LogStore::info("[ConfigLoader] loading");
 
-    File file = LittleFS.open("/config.json", "r");
+    File file = LittleFS.open(CONFIG_FILE, "r");
     if (!file) {
-      Serial.println("[LittleFS] Failed to open config file");
+      LogStore::info("[LittleFS] Failed to open config file");
       return;
     }
     String finalString = "";
-    Serial.println("[LittleFS] File Content:");
+    LogStore::info("[LittleFS] File Content:");
     while (file.available()) {
       finalString += (char)file.read();
     }
@@ -40,7 +42,7 @@ public:
     if (!error) {
       //serializeJson(jsonConfig, Serial);
 
-      Serial.println("[ConfigLoader] Done parsing configuration");
+      LogStore::info("[ConfigLoader] Done parsing configuration");
 
     } else {
       Serial.print(F("deserializeJson() failed: "));
