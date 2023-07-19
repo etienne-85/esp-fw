@@ -20,4 +20,6 @@ public:
 
   static void info(string log);
   static void dbg(string log);
+
+  static std::string jsonExport();
 };

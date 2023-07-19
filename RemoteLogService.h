@@ -151,28 +151,24 @@ void LogRemoteService::dump() {
   // }
   // aggregate all logs stored in buffer
   // std::string logs("[LogRemoteService] OK");
-  StaticJsonDocument<5000> doc;
-  JsonArray logs = doc.createNestedArray("logs");
-  for (auto const &item : LogStore::logBuffer) {
-    LogData logData = item.second;
-    // logs += logData.timestamp;
-    logs.add(logData.log);
-  }
-  std::string output("");
-  serializeJsonPretty(doc, output);
-  this->send(output, SEND_TYPE_TEXT);
+  
+  this->send(LogStore::jsonExport(), SEND_TYPE_TEXT);
   // clear log buffer
   LogStore::logBuffer.clear();
 }
 
 void LogRemoteService::dumpPrevious() {
-  std::string output = FsLogService::readPreviousLog();
-  LogStore::info(output);
-  // serializeJsonPretty(doc, output);
-  this->send(output, SEND_TYPE_TEXT);
+  std::string rawContent = FsLogService::readPreviousLog();
+  StaticJsonDocument<200> jsData;
+  deserializeJson(jsData, rawContent);
+  // reserialize back
+  std::string sData = "";
+  serializeJsonPretty(jsData, sData);
+  this->send(sData, SEND_TYPE_TEXT);
 }
 
 void LogRemoteService::init() {
+  LogStore::info("[LogRemoteService::init]");
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
 }

@@ -112,6 +112,7 @@ GpioRemoteService::GpioRemoteService(int clientId)
 }
 
 void GpioRemoteService::init() {
+  LogStore::info("[GpioRemoteService::init]");
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
 }
