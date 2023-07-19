@@ -1,4 +1,14 @@
 #include <FsUtils.h>
+#include <LogStore.h>
+
+std::string printDate(struct tm *tmstruct) {
+  return (std::to_string((tmstruct->tm_year) + 1900) + "-" +
+          std::to_string(tmstruct->tm_mon + 1) + "-" +
+          std::to_string(tmstruct->tm_mday) + " " +
+          std::to_string(tmstruct->tm_hour) + ":" +
+          std::to_string(tmstruct->tm_min) + ":" +
+          std::to_string(tmstruct->tm_sec));
+}
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   Serial.printf("Listing directory: %s\r\n", dirname);
@@ -15,43 +25,26 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
 
   File file = root.openNextFile();
   while (file) {
-    if (file.isDirectory()) {
-      Serial.print("  DIR : ");
-
-      Serial.print(file.name());
       time_t t = file.getLastWrite();
       struct tm *tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
-                    (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
-                    tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
-                    tmstruct->tm_sec);
+      std::string datePrint("");
+      datePrint += file.isDirectory()? "[dir] " : "[file] " + std::to_string(file.size()) + "  ";
+      datePrint += printDate(tmstruct) + "  " + std::string(file.name());
+      LogStore::info(datePrint);
 
       if (levels) {
         listDir(fs, file.name(), levels - 1);
       }
-    } else {
-      Serial.print("  FILE: ");
-      Serial.print(file.name());
-      Serial.print("  SIZE: ");
-
-      Serial.print(file.size());
-      time_t t = file.getLastWrite();
-      struct tm *tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
-                    (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
-                    tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
-                    tmstruct->tm_sec);
-    }
     file = root.openNextFile();
   }
 }
 
 void createDir(fs::FS &fs, const char *path) {
-  Serial.printf("Creating Dir: %s\n", path);
+  LogStore::info("Creating Dir: " + std::string(path));
   if (fs.mkdir(path)) {
-    Serial.println("Dir created");
+    LogStore::info("Dir created");
   } else {
-    Serial.println("mkdir failed");
+    LogStore::info("mkdir failed");
   }
 }
 
@@ -65,36 +58,36 @@ void removeDir(fs::FS &fs, const char *path) {
 }
 
 std::string readFile(fs::FS &fs, const char *path) {
-  Serial.printf("Reading file: %s\r\n", path);
+  LogStore::info("Reading file: " + std::string(path));
 
   File file = fs.open(path);
   if (!file || file.isDirectory()) {
-    Serial.println("- failed to open file for reading");
+    LogStore::info("- failed to open file for reading");
     return NULL;
   }
 
-  Serial.println("- read from file:");
-  std::string fileContent = "";
+  LogStore::info("- read from file:");
+  String fileContent = "";
   while (file.available()) {
     fileContent += (char)file.read();
-    Serial.write(file.read());
   }
   file.close();
-  return fileContent;
+  std::string sFileContent(fileContent.c_str());
+  return sFileContent;
 }
 
 void writeFile(fs::FS &fs, const char *path, const char *message) {
-  Serial.printf("Writing file: %s\r\n", path);
+  LogStore::info("Writing file: " + std::string(path));
 
   File file = fs.open(path, FILE_WRITE);
   if (!file) {
-    Serial.println("- failed to open file for writing");
+    LogStore::info("- failed to open file for writing");
     return;
   }
   if (file.print(message)) {
-    Serial.println("- file written");
+    LogStore::info("- file written");
   } else {
-    Serial.println("- write failed");
+    LogStore::info("- write failed");
   }
   file.close();
 }
@@ -116,11 +109,12 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
 }
 
 void renameFile(fs::FS &fs, const char *path1, const char *path2) {
-  Serial.printf("Renaming file %s to %s\r\n", path1, path2);
+  LogStore::info("Renaming file: " + std::string(path1) + " to " +
+                 std::string(path2));
   if (fs.rename(path1, path2)) {
-    Serial.println("- file renamed");
+    LogStore::info("- file renamed");
   } else {
-    Serial.println("- rename failed");
+    LogStore::info("- rename failed");
   }
 }
 

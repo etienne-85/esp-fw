@@ -84,6 +84,7 @@ FsRemoteService::FsRemoteService(int clientId)
 }
 
 void FsRemoteService::init() {
+  LogStore::info("[FsRemoteService::init]");
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
 }
