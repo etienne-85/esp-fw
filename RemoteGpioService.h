@@ -170,7 +170,7 @@ void GpioRemoteService::extractMsg(std::string incomingMsg) {
   std::string cmd = root["cmd"];   // for operation not tied to any pin
   int msgRefId = root["msgRefId"]; // in case reply is needed
   JsonObject jsPinsBatch = root["pinsBatch"];
-  LogStore::info("[GpioRemoteService::unpackMsg] msgRefID " +
+  LogStore::info("[GpioRemoteService::extractMsg] msgRefID " +
                  std::to_string(msgRefId));
 
   // JsonArray array = jsonMsg["gpios"];
@@ -215,8 +215,6 @@ void GpioRemoteService::extractMsg(std::string incomingMsg) {
     switch (*pinOp) {
     case 'a': // alloc
     {
-      // std::cout << "[GpioRemoteService::unpackMsg] -> pinAlloc " <<
-      // std::endl; pack/encode/serialize for pin data forwarding
       std::string sPinData;
       serializeJson(jsPinData, sPinData);
       pinInstance = GpioFactory::pinAlloc(pin, sPinData); // [static]
