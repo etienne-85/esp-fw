@@ -4,7 +4,7 @@
  */
 
 #include <ArduinoJson.h>
-#include <FsLogService.h>
+#include <LogConsumers.h>
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
 #include <WebServer.h>
@@ -158,7 +158,7 @@ void LogRemoteService::dump() {
 }
 
 void LogRemoteService::dumpPrevious() {
-  std::string rawContent = FsLogService::readPreviousLog();
+  std::string rawContent = FsLogConsumer::readPastLog();
   StaticJsonDocument<200> jsData;
   deserializeJson(jsData, rawContent);
   // reserialize back
