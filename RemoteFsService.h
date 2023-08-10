@@ -15,6 +15,25 @@
 
 using namespace httpsserver;
 
+std::string dumpJsonFile(const char * fileName) {
+  std::string fileContent = FsUtils::readFile(LittleFS, fileName);
+  StaticJsonDocument<JSON_MSG_SIZE> jsFileContent;
+  DeserializationError error = deserializeJson(jsFileContent, fileContent);
+
+  // Test if parsing succeeds.
+  if (!error) {
+    LogStore::info("[FsRemoteService::handleJsonFile] Done reading file content");
+  } else {
+    LogStore::info("deserializeJson() failed: ");
+    Serial.println(error.f_str());
+  }
+
+  // reserialize back
+  std::string sFileContentCopy = "";
+  serializeJsonPretty(jsFileContent, sFileContentCopy);
+  return sFileContentCopy;
+}
+
 class FsRemoteService : public WebsocketHandler {
   // STATIC FIELDS
   static WebsocketNode
@@ -39,6 +58,8 @@ public:
   void onMessage(WebsocketInputStreambuf *input);
   // Handler function on connection close
   void onClose();
+  // extract json structure
+  void extractMsg(std::string rawMsg);
   // FS operations
   void createFile();
   void deleteFile();
@@ -79,8 +100,8 @@ WebsocketHandler *FsRemoteService::onCreate() {
 
 FsRemoteService::FsRemoteService(int clientId)
     : WebsocketHandler(), clientId(clientId) {
-  LogStore::info("[FsRemoteService] new instance for client #" +
-                 std::to_string(clientId));
+  LogStore::info("[FsRemoteService] Client #" + std::to_string(clientId) +
+                 " connected");
 }
 
 void FsRemoteService::init() {
@@ -98,11 +119,107 @@ void FsRemoteService::onMessage(WebsocketInputStreambuf *inbuf) {
   ss << inbuf;
   msg = ss.str();
   // this->send("[LogRemoteService::onMessage]", SEND_TYPE_TEXT);
-  readFile(CONFIG_FILE);
+  // readFile(CONFIG_FILE);
+  extractMsg(msg);
+}
+
+void FsRemoteService::extractMsg(std::string incomingMsg) {
+  // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
+  // incomingMsg
+  //           << std::endl;
+  StaticJsonDocument<JSON_MSG_SIZE> root;
+  // convert to a json object
+  DeserializationError error = deserializeJson(root, incomingMsg);
+
+  // root level props
+  std::string cmd = root["cmd"];   // for operation not tied to any pin
+  int msgRefId = root["msgRefId"]; // in case reply is needed
+  JsonObject jsFilesBatch = root["filesBatch"];
+  LogStore::info("[FsRemoteService::extractMsg] msgRefID " +
+                 std::to_string(msgRefId));
+
+  std::string replyMsg("Default reply from FsRemoteService");
+
+  // supported fs commands
+  // list files
+  if (cmd == "ls") {
+    LogStore::info("[FsRemoteService::extractMsg] [TODO] list all files");
+  }
+  else if (cmd == "cat") {
+    LogStore::info("[FsRemoteService::extractMsg] [TODO] dump file content");
+  } 
+  else if (cmd == "rm") {
+    LogStore::info("[FsRemoteService::extractMsg] [TODO] remove file");
+  }
+  else if (cmd == "touch") {
+    LogStore::info("[FsRemoteService::extractMsg] [TODO] create file");
+  }
+  else if (cmd == "write") {
+    LogStore::info("[FsRemoteService::extractMsg] [TODO] write content to file");
+  }
+
+  // hash files batch
+  for (JsonPair kv : jsFilesBatch) {
+    // key/value
+    int pin = std::stoi(kv.key().c_str());
+    // extract pin data
+    JsonObject jsFileData = kv.value().as<JsonObject>();
+
+    // GpioPin *pinInstance = GpioFactory::pinFind(pin);
+
+    // returned value of pin operation if applicable
+    // std::string *sPinRes = NULL;
+
+    const char *fileOp = jsFileData["op"];
+    const char *fileName = jsFileData["fileName"];
+    // supported types: json
+    const char *fileType = jsFileData["fileType"];
+    switch (*fileOp) {
+    case 'c': // create file
+    {
+      // std::string sPinData;
+      // serializeJson(jsPinData, sPinData);
+      // pinInstance = GpioFactory::pinAlloc(pin, sPinData); // [static]
+      break;
+    }
+    case 'r': // read
+    {
+      LogStore::info("[Core::ConfigLoader] read file content from filesystem " +
+                     std::string(fileName));
+
+      std::string fileContent = dumpJsonFile(fileName);
+      // and send to client
+      this->send(fileContent, SEND_TYPE_TEXT);
+      break;
+    }
+    case 'w': // write
+    {
+      const char *fileContent = jsFileData["fileContent"];
+      // int pinVal = jsPinData["val"];
+      // pinInstance->write(pinVal);
+      break;
+    }
+    case 'd': // delete
+    {
+      // GpioFactory::pinFree(pin); // [static]
+      break;
+    }
+    }
+  }
+  // optional reply depending on pin operation
+  // if (msgRefId) {
+  //   std::string replyMsg("TODO");
+  // }
+  if (replyMsg.length()) {
+    String dataOut(replyMsg.c_str());
+    // webSocket.textAll(dataOut);
+  }
 }
 
 // When the websocket is closing, we remove the client from the array
 void FsRemoteService::onClose() {
+  LogStore::info("[FsRemoteService] Client #" + std::to_string(clientId) +
+                 " disconnected");
   // for(int i = 0; i < MAX_CLIENTS; i++) {
   //   if (activeClients[i] == this) {
   //     activeClients[i] = nullptr;
@@ -120,7 +237,8 @@ void FsRemoteService::deleteFile() {}
 // void FsRemoteService::closeFile() {}
 void FsRemoteService::readFile(std::string file) {
   LogStore::info("[FsRemoteService::readFile] file " + file);
-  std::string fileContent = "TODO read file content"; //readFile(LittleFS, file);
+  std::string fileContent =
+      "TODO read file content"; // readFile(LittleFS, file);
   this->send(fileContent, SEND_TYPE_TEXT);
 }
 void FsRemoteService::writeFile() {
