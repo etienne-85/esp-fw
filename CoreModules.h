@@ -25,7 +25,7 @@ void CoreModules::initFs() {
   }
   LogStore::info("[Core::FS] mounted successfully!");
 
-  listDir(LittleFS, "/", 0);
+  FsUtils::listDir(LittleFS, "/", 0);
 
   LogStore::info("[Core::FS] Done");
 }
@@ -37,7 +37,7 @@ void CoreModules::loadConfigFile() {
   LogStore::info("[Core::ConfigLoader] Loading config from filesystem " +
                  std::string(CONFIG_FILE));
 
-  std::string fileContent = readFile(LittleFS, CONFIG_FILE);
+  std::string fileContent = FsUtils::readFile(LittleFS, CONFIG_FILE);
   // convert to a json object
   DeserializationError error = deserializeJson(jsConfig, fileContent);
 

@@ -107,8 +107,8 @@ WebsocketHandler *GpioRemoteService::onCreate() {
 
 GpioRemoteService::GpioRemoteService(int clientId)
     : WebsocketHandler(), clientId(clientId) {
-  LogStore::info("[GpioRemoteService] new instance for client #" +
-                 std::to_string(clientId));
+  LogStore::info("[GpioRemoteService] Client #" + std::to_string(clientId) +
+                 " connected");
 }
 
 void GpioRemoteService::init() {
@@ -129,6 +129,8 @@ void GpioRemoteService::loop() {
 
 // When the websocket is closing, we remove the client from the array
 void GpioRemoteService::onClose() {
+  LogStore::info("[GpioRemoteService] Client #" + std::to_string(clientId) +
+                 " disconnected");
   // for(int i = 0; i < MAX_CLIENTS; i++) {
   //   if (activeClients[i] == this) {
   //     activeClients[i] = nullptr;
