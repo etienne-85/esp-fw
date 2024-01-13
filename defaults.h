@@ -5,6 +5,6 @@
 #define MAX_CLIENTS 4
 #define CONFIG_FILE "/config.json"
 #define LOG_FILE "/logs.json"
-#define OLD_LOG_FILE "/logs.old.json"
+#define LOG_ARCHIVE_FILE "/logs.archive.json"
 
 // extern const char defaultWSPath[] = "/test"; // (1)

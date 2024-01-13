@@ -73,7 +73,7 @@ FsLogConsumer::FsLogConsumer() {}
 
 void FsLogConsumer::init() {
   // move previous logs
-  FsUtils::renameFile(LittleFS, LOG_FILE, OLD_LOG_FILE);
+  FsUtils::renameFile(LittleFS, LOG_FILE, LOG_ARCHIVE_FILE);
   // create new logfile
   FsUtils::writeFile(LittleFS, LOG_FILE, LogStore::jsonExport().c_str());
   // readFile(LITTLEFS, "/hello.txt");
@@ -81,7 +81,7 @@ void FsLogConsumer::init() {
 
 std::string FsLogConsumer::readPastLog() {
   // log+"\r\n"
-  std::string fileContent = FsUtils::readFile(LittleFS, OLD_LOG_FILE);
+  std::string fileContent = FsUtils::readFile(LittleFS, LOG_ARCHIVE_FILE);
   return fileContent;
 }
 
