@@ -28,7 +28,7 @@ void setup() {
   LogStore::info("**********************");
   LogStore::info("*** ESP32 Firmware ***");
   LogStore::info("**********************");
-  LogStore::info("   BUILD ver: c");
+  LogStore::info("   BUILD ver: g");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   LogStore::info("*** System core init ***");
@@ -44,7 +44,9 @@ void setup() {
   // GpioRemoteService::instance().init();
   LogStore::info("");
   LogStore::info("*** Remote services ***");
-  RemoteService::registerService("/ws", &RemoteService::registerClient);
+  // RemoteService::registerService("/ws", &RemoteService::instanceOnClientConnect);
+  RemoteService::registerDefaultService();
+  LogRemoteService::instance();
   // RemoteService::registerVirtualService("/gpio", &GpioRemoteService::onMessage)
   // GpioRemoteService::init();
   // LogRemoteService::init();

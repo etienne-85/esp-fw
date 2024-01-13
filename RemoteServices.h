@@ -1,6 +1,7 @@
 #include <ArduinoJson.h>
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
+#include <RemoteServiceListener.h>
 #include <WebServer.h>
 #include <WebsocketHandler.hpp>
 #include <defaults.h>
@@ -12,15 +13,16 @@
 using namespace httpsserver;
 
 /*
- * Acting as a proxy for other (sub)services
- * All messages received on main websocket route are rerouted to relevant subservice 
- * expected JSON message structure
+ * Acting as a proxy or dispatcher for other (sub)services
+ * All messages received on main websocket route are rerouted to
+ * subservices inheriting the RemoteServiceListener class
+ * based on service name provided in following JSON message structure:
  * {
  *    service: targeted subservice
  *    payload: service payload
  * }
  *
- *  ESP remote sub-services
+ *  Example of remote sub-services
  *  - GPIO control
  *  - FS operations (usecase: read log file, change settings file)
  *  - LOGS: flush logs buffer
@@ -49,8 +51,11 @@ public:
   // public:
   //   static void *registerSubService(std::string subServiceRoute,
   //                                       RemoteService *serviceSingleton);
-  static void *registerService(std::string serviceRoute,
-                               WebsocketHandler *(*handlerBuilder)());
+  static void registerService(std::string serviceRoute,
+                              WebsocketHandler *(*handlerBuilder)());
+
+  static void registerDefaultService();
+
   // METHODS
 protected:
   RemoteService(int clientId);
@@ -97,14 +102,25 @@ void RemoteService::onClose() {
 //       {virtualServiceRoute, serviceSingleton});
 // }
 
+void RemoteService::registerDefaultService() {
+  std::string defaultRoute("/ws");
+  // create dedicated socket node
+  WebsocketNode *webSocketNode =
+      new WebsocketNode(defaultRoute, &instanceOnClientConnect);
+  LogStore::info("[RemoteService::initDefaultService] on route: " +
+                 defaultRoute);
+  // register ws service to main secured server
+  WebServer::instance().secureServer.registerNode(webSocketNode);
+}
+
 /*
  * automatically handle service creation when client connects on specific
  * route and directly send message to service.
  * handlerBuilder is a static method from child class able to create service
  * instance
  */
-void *RemoteService::registerService(std::string serviceRoute,
-                                     WebsocketHandler *(*handlerBuilder)()) {
+void RemoteService::registerService(std::string serviceRoute,
+                                    WebsocketHandler *(*handlerBuilder)()) {
   // create dedicated socket node
   WebsocketNode *webSocketNode =
       new WebsocketNode(serviceRoute, handlerBuilder);
@@ -129,28 +145,24 @@ void RemoteService::onMessage(WebsocketInputStreambuf *inbuf) {
   // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
   // incomingMsg
   //           << std::endl;
-  StaticJsonDocument<JSON_MSG_SIZE> root;
-  // convert to a json object
-  DeserializationError error = deserializeJson(root, incomingMsg);
+  // StaticJsonDocument<JSON_MSG_SIZE> root;
+  // // convert to a json object
+  // DeserializationError error = deserializeJson(root, incomingMsg);
 
-  // root level props
-  std::string serviceName = root["serviceName"];
-  // find corresponding sub service
-  auto subService = RemoteService::registeredServices.find(serviceName);
-  if (subService != RemoteService::registeredServices.end()) {
-    // forward message to subservice handler
-    subService->second->onMessage(inbuf);
-  } else {
-    LogStore::info("[RemoteService::onMessage] no subservice matching " +
-                   subService + " was found");
-  }
-
-  std::string outgoingMsg = "TODO";
-
-  // optional service reply
-  if (outgoingMsg.length()) {
-    String dataOut(outgoingMsg.c_str());
-    // webSocket.textAll(dataOut);
+  // // root level props
+  // std::string serviceName = root["serviceName"];
+  // // find corresponding sub service
+  // auto subService = RemoteService::registeredServices.find(serviceName);
+  // if (subService != RemoteService::registeredServices.end()) {
+  //   // forward message to subservice handler
+  //   subService->second->onMessage(inbuf);
+  // } else {
+  //   LogStore::info("[RemoteService::onMessage] no subservice matching " +
+  //                  subService + " was found");
+  // }
+  std::string outgoingMsg = RemoteServiceListener::dispatchMsg(incomingMsg);
+  if (outgoingMsg.length() > 0) {
+    this->send(outgoingMsg, SEND_TYPE_TEXT);
   }
 }
 
@@ -164,17 +176,17 @@ std::map<std::string, RemoteService *> RemoteService::registeredServices;
 //     new WebsocketNode("/services", &RemoteService::registerClient);
 
 /**
-* Per client service constructor. 
-* An instance is created and associated to each client when it first connects on websocket route
-* If having 2 different services on their respective routes `route1`, and `route2`
-* First client connects on `route1` => service#1instance#1
-* First client connects on `route2` => service#2instance#1
-* Second client connects on `route1`=> service#1instance#2
-* Second client connects on `route2`=> service#2instance#2
-* 
-* 2 clients connected on 2 different routes => 4 total instances
-* 
-*/
+ * Per client service constructor.
+ * An instance is created and associated to each client when it first connects
+ * on websocket route If having 2 different services on their respective routes
+ * `route1`, and `route2` First client connects on `route1` =>
+ * service#1instance#1 First client connects on `route2` => service#2instance#1
+ * Second client connects on `route1`=> service#1instance#2
+ * Second client connects on `route2`=> service#2instance#2
+ *
+ * 2 clients connected on 2 different routes => 4 total instances
+ *
+ */
 WebsocketHandler *RemoteService::instanceOnClientConnect() {
   RemoteService *instance = NULL;
   int clientNb = RemoteService::instances.size();
@@ -182,9 +194,10 @@ WebsocketHandler *RemoteService::instanceOnClientConnect() {
     instance = new RemoteService(clientNb);
     RemoteService::instances.insert({clientNb, instance});
   } else {
-    LogStore::info("[RemoteService::instanceOnClientConnect] reject max number of "
-                   "client reached #" +
-                   std::to_string(clientNb));
+    LogStore::info(
+        "[RemoteService::instanceOnClientConnect] reject max number of "
+        "client reached #" +
+        std::to_string(clientNb));
   }
   // will be cast to WebsocketHandler*
   return instance;
@@ -198,8 +211,8 @@ WebsocketHandler *RemoteService::instanceOnClientConnect() {
 // void updateSettings(); // update settings temporarily
 // void saveSettings();   // making changes permanent
 
-class StandaloneRemoteService : RemoteService {};
+// class StandaloneRemoteService : RemoteService {};
 
-class VirtualRemoteService {
-  void extractMessage(std::string incomingMsg);
-};
+// class VirtualRemoteService {
+//   void extractMessage(std::string incomingMsg);
+// };
