@@ -1,14 +1,51 @@
-# esp32-gpio-over-ws
-Or `esp32-remote-controls`, `esp32-controls-ota`, `esp32-gpio-ota`, `esp32-ws-controls`, `esp32-remote-gpio`, `esp32-full-remote`, `esp32-ws-rc-gpio`, `esp32-universal-controls`, `esp32-gpio-over-ws`
-Remote control OTA of ESP32 GPIOs using websockets
-Built-in firmware support for:
+# esp32-remote-control
+`esp32-remote-control`, `esp32-controls-ota`, `esp32-gpio-ota`, `esp32-ws-controls`, `esp32-remote-gpio`, `esp32-full-remote`, `esp32-ws-rc-gpio`, `esp32-universal-controls`, `esp32-gpio-over-ws`
+Gpio over websockets project is an ESP32 firmware aiming to access and control GPIO pins remotely through websockets.
+It aims to be as generic as possible by externalizing hardware drivers implementation and significantly reduce device's firmware updates.
+
+
+## Design and motivations
+It is designed to:
+- heavily relies upon websockets to provide instant communication with device
+- to allow web app hosted separately to communicate with device by providing web secured connection
+- modular architecture making easy implementation of new services 
+
+
+What? 
+allow controlling pins remotely
+
+Why?
+- universal firmware reusable across projects: avoid building specific firmare version each time new hardware support is required 
+- move all project's logic to high level language like javascript
+
+How?
+ Drivers implemented outside device's firmware
+
+Requirement:
+- GPIO remote control capabilities
+    - requires websockets
+    - requires webservice
+    - requires network connection
+
+Extra requirements  : 
+- network settings load from external json configuration
+    - requires Filesystem access
+- OTA firmware updater
+
+## Limitations
+
+- if you need device to work offline or perform independant tasks
+- 
+
+
+Built-in support for:
 - external config loader
 - Filesystem
 - wifi (both AP and STA mode)
 - OTA firmware deployment 
 - web-app hosting through static web server 
 - realtime communications through websockets
-- support new hardware without changing any firmware code through ws-remote-GPIOs
+- GPIO over websockets: remotely control GPIOs => support new hardware without changing any firmware code
 
 Designed for
 - minimizing firmware coding.

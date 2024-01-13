@@ -1,36 +1,40 @@
 #include "soc/rtc_cntl_reg.h" // Disable brownour problems
 #include "soc/soc.h"          // Disable brownour problems
 #include <Arduino.h>
-#include <CoreModules.h>
+#include <System.h>
 #include <LogStore.h>
 #include <LogConsumers.h>
 #include <WebServer.h>
 #include <web-services-core.h>
 #include <CyclesCounter.h>
 // Remote services
-#include <RemoteFsService.h>
+#include <RemoteServices.h>
+// #include <RemoteFsService.h>
 #include <RemoteGpioService.h>
 #include <RemoteLogService.h>
 
 /**
  * setup
+ * Remote services hierarchy
+ * - /ws
+ *  -> gpio
+ *  -> log
+ *  -> adm
+ *  -> mon
+ *  -> fs
  */
 void setup() {
   Serial.begin(115200);
   LogStore::info("**********************");
   LogStore::info("*** ESP32 Firmware ***");
   LogStore::info("**********************");
-  LogStore::info("   BUILD ver: a");
+  LogStore::info("   BUILD ver: c");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-  // Core modules
+  LogStore::info("*** System core init ***");
+  System::coreInit();
   LogStore::info("");
-  LogStore::info("*** Core modules ***");
-  CoreModules::initFs();
-  CoreModules::loadConfigFile();
-  CoreModules::setupNetwork();
-  LogStore::info("");
-  LogStore::info("*** Core services ***");
+  LogStore::info("*** Services ***");
   // TestLogConsumer::instance();
   // SerialLogConsumer::instance(); // only used to register as LogConsumer instance
   // SerialLogConsumer::init(); 
@@ -40,8 +44,10 @@ void setup() {
   // GpioRemoteService::instance().init();
   LogStore::info("");
   LogStore::info("*** Remote services ***");
-  GpioRemoteService::init();
-  LogRemoteService::init();
+  RemoteService::registerService("/ws", &RemoteService::registerClient);
+  // RemoteService::registerVirtualService("/gpio", &GpioRemoteService::onMessage)
+  // GpioRemoteService::init();
+  // LogRemoteService::init();
   // FsRemoteService::init();
   LogStore::info("");
   LogStore::info("*** Start services ***");

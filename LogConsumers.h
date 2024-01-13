@@ -1,5 +1,6 @@
 #pragma once
 #include <LogStore.h>
+#include <FileHandlers.h>
 #include <defaults.h>
 #include <string>
 
@@ -37,6 +38,8 @@ public:
 };
 
 class FsLogConsumer : public LogConsumer {
+  static JsonFileHandler &logs;
+  static JsonFileHandler &logArchive;
   static FsLogConsumer &singleton;
 
 public:

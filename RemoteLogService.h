@@ -4,8 +4,8 @@
  */
 
 #include <ArduinoJson.h>
-#include <LogConsumers.h>
 #include <HTTPSServer.hpp>
+#include <LogConsumers.h>
 #include <LogStore.h>
 #include <WebServer.h>
 #include <WebsocketHandler.hpp>
@@ -50,8 +50,8 @@ public:
   // This method is called when a message arrives
   void onMessage(WebsocketInputStreambuf *input);
   void extractMsg(std::string rawMsg);
-  void dump();
-  void dumpPrevious();
+  void flushLogs();
+  void dumpArchive();
   // Handler function on connection close
   void onClose();
 };
@@ -92,8 +92,8 @@ WebsocketHandler *LogRemoteService::onCreate() {
 
 LogRemoteService::LogRemoteService(int clientId)
     : WebsocketHandler(), clientId(clientId) {
-  LogStore::info("[LogRemoteService] new instance for client #" +
-                 std::to_string(clientId));
+  LogStore::info("[LogRemoteService] Client #" + std::to_string(clientId) +
+                 " connected");
 }
 
 // Finally, passing messages around. If we receive something, we send it to all
@@ -112,6 +112,8 @@ void LogRemoteService::onMessage(WebsocketInputStreambuf *msgBuff) {
 
 // When the websocket is closing, we remove the client from the array
 void LogRemoteService::onClose() {
+  LogStore::info("[LogRemoteService] Client #" + std::to_string(clientId) +
+                 " disconnected");
   // for(int i = 0; i < MAX_CLIENTS; i++) {
   //   if (activeClients[i] == this) {
   //     activeClients[i] = nullptr;
@@ -133,14 +135,17 @@ void LogRemoteService::extractMsg(std::string rawMsg) {
 
   // std::string replyMsg("Default reply from GpioRemoteService");
 
-  if (cmd == "previous") {
-    dumpPrevious();
+  if (cmd == "archived") {
+    dumpArchive();
   } else {
-    dump();
+    flushLogs();
   }
 }
 
-void LogRemoteService::dump() {
+/*
+* Flushing latest logs
+*/
+void LogRemoteService::flushLogs() {
   // std::cout << "[LogRemoteService] received message: " << msg << std::endl;
 
   // Send it back to every client
@@ -151,13 +156,16 @@ void LogRemoteService::dump() {
   // }
   // aggregate all logs stored in buffer
   // std::string logs("[LogRemoteService] OK");
-  
+
   this->send(LogStore::jsonExport(), SEND_TYPE_TEXT);
   // clear log buffer
   LogStore::logBuffer.clear();
 }
 
-void LogRemoteService::dumpPrevious() {
+/*
+* Dumping full logs from previous boot
+*/
+void LogRemoteService::dumpArchive() {
   std::string rawContent = FsLogConsumer::readPastLog();
   StaticJsonDocument<200> jsData;
   deserializeJson(jsData, rawContent);

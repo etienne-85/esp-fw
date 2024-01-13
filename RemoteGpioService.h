@@ -59,7 +59,7 @@ private:
   // static WebsocketHandler *instancePtr();
 
 public:
-  // This method is called when a message arrives
+  // This method is called when a message arrives in standalone mode
   void onMessage(WebsocketInputStreambuf *input);
   // Handler function on connection close
   void onClose();
