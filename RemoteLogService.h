@@ -57,7 +57,7 @@ public:
   // // This method is called when a message arrives
   // void onMessage(WebsocketInputStreambuf *input);
   // // Handler function on connection close
-  // void onClose(); 
+  // void onClose();
 };
 
 /**************************
@@ -89,12 +89,14 @@ LogRemoteService::LogRemoteService() : RemoteServiceListener(SERVICE_NAME) {
 
 // void LogRemoteService::extractMsg(std::string rawMsg) {
 std::string LogRemoteService::processMsg(std::string rawMsg) {
+  LogStore::info("[LogRemoteService] processMsg " + rawMsg);
+
   StaticJsonDocument<JSON_MSG_SIZE> root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, rawMsg);
 
   // root level props
-  std::string cmd = root["cmd"]; // for operation not tied to any pin
+  std::string cmd = root["cmd"];
   // int msgRefId = root["msgRefId"]; // in case reply is needed
 
   // LogStore::info("[GpioRemoteService::unpackMsg] msgRefID " +
@@ -113,7 +115,7 @@ std::string LogRemoteService::processMsg(std::string rawMsg) {
  * Flushing latest logs
  */
 std::string LogRemoteService::logBuffer() {
-  // std::cout << "[LogRemoteService] received message: " << msg << std::endl;
+  LogStore::info("[LogRemoteService::logBuffer] ");
 
   // Send it back to every client
   // for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -125,16 +127,18 @@ std::string LogRemoteService::logBuffer() {
   // std::string logs("[LogRemoteService] OK");
 
   // this->send(LogStore::jsonExport(), SEND_TYPE_TEXT);
-  std::string logs = LogStore::jsonExport();
+  std::string logExport(LogStore::jsonExport());
   // clear log buffer
   LogStore::logBuffer.clear();
-  return logs;
+  return logExport;
 }
 
 /*
  * Dumping logs from previous boot
  */
 std::string LogRemoteService::logArchive() {
+  LogStore::info("[LogRemoteService::logArchive] ");
+
   std::string rawContent = FsLogConsumer::readPastLog();
   StaticJsonDocument<200> jsData;
   deserializeJson(jsData, rawContent);

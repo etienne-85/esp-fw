@@ -162,7 +162,10 @@ void RemoteService::onMessage(WebsocketInputStreambuf *inbuf) {
   // }
   std::string outgoingMsg = RemoteServiceListener::dispatchMsg(incomingMsg);
   if (outgoingMsg.length() > 0) {
+    // LogStore::info("[RemoteService::onMessage] sending reply: " + outgoingMsg);
     this->send(outgoingMsg, SEND_TYPE_TEXT);
+  } else {
+    LogStore::info("[RemoteService::onMessage] empty message => no reply sent");
   }
 }
 

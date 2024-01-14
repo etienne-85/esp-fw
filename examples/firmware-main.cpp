@@ -28,7 +28,7 @@ void setup() {
   LogStore::info("**********************");
   LogStore::info("*** ESP32 Firmware ***");
   LogStore::info("**********************");
-  LogStore::info("   BUILD ver: g");
+  LogStore::info("   BUILD ver: yz");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   LogStore::info("*** System core init ***");
