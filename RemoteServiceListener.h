@@ -36,21 +36,21 @@ std::string RemoteServiceListener::dispatchMsg(std::string incomingMsg) {
 
   // root level props
   std::string serviceName = root["serviceName"];
-  LogStore::info(
-      "[RemoteServiceListener::dispatchMsg] receive message for service " +
-      serviceName);
   // find corresponding sub service
   auto matchingService =
       RemoteServiceListener::registeredServices.find(serviceName);
   if (matchingService != RemoteServiceListener::registeredServices.end()) {
+    LogStore::info(
+        "[RemoteService::dispatchMsg] forwarding message to service " +
+        serviceName);
     // forward message to subservice handler
     std::string reply = matchingService->second->processMsg(incomingMsg);
     return reply;
 
   } else {
     LogStore::info(
-        "[RemoteService::onMessage] no registered service matching " +
+        "[RemoteService::dispatchMsg] no registered service matching " +
         serviceName);
   }
-  return NULL;
+  return "";
 }

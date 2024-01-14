@@ -24,14 +24,14 @@ void LogStore::dbg(string log) { LogStore::add(log, 1); }
 
 std::string LogStore::jsonExport() {
   LogStore::info("[LogStore::jsonExport] ");
-  StaticJsonDocument<5000> jsData;
+  StaticJsonDocument<2000> jsData;
   JsonArray logs = jsData.createNestedArray("logs");
   for (auto const &item : LogStore::logBuffer) {
     LogData logData = item.second;
     // logs += logData.timestamp;
     logs.add(logData.log);
   }
-  std::string output("");
-  serializeJsonPretty(jsData, output);
-  return output;
+  std::string logExport("");
+  serializeJsonPretty(jsData, logExport);
+  return logExport;
 }
