@@ -10,14 +10,11 @@
 #include <defaults.h>
 #include <string>
 
-// #define JSON_SIZE DEFAULT_JSON_SIZE
-#define JSON_MSG_SIZE DEFAULT_JSON_SIZE
-
 using namespace httpsserver;
 
 std::string dumpJsonFile(const char * fileName) {
   std::string fileContent = FsUtils::readFile(LittleFS, fileName);
-  StaticJsonDocument<JSON_MSG_SIZE> jsFileContent;
+  JsonDocument jsFileContent;
   DeserializationError error = deserializeJson(jsFileContent, fileContent);
 
   // Test if parsing succeeds.
@@ -127,7 +124,7 @@ void FsRemoteService::extractMsg(std::string incomingMsg) {
   // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
   // incomingMsg
   //           << std::endl;
-  StaticJsonDocument<JSON_MSG_SIZE> root;
+  JsonDocument root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
 

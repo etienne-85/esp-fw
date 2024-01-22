@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <defaults.h>
 #include <iostream>
 #include <map>
 #include <string>

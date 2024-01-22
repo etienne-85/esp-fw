@@ -9,12 +9,9 @@
 #include <LogStore.h>
 #include <WebServer.h>
 #include <WebsocketHandler.hpp>
-#include <defaults.h>
 #include <string>
 
-// #define JSON_SIZE DEFAULT_JSON_SIZE
-#define JSON_MSG_SIZE DEFAULT_JSON_SIZE
-#define SERVICE_NAME "LogRemoteService"
+#define SERVICE_NAME "logs"
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it
 // here.
@@ -91,7 +88,7 @@ LogRemoteService::LogRemoteService() : RemoteServiceListener(SERVICE_NAME) {
 std::string LogRemoteService::processMsg(std::string rawMsg) {
   LogStore::info("[LogRemoteService] processMsg " + rawMsg);
 
-  StaticJsonDocument<JSON_MSG_SIZE> root;
+  JsonDocument root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, rawMsg);
 
@@ -140,7 +137,7 @@ std::string LogRemoteService::logArchive() {
   LogStore::info("[LogRemoteService::logArchive] ");
 
   std::string rawContent = FsLogConsumer::readPastLog();
-  StaticJsonDocument<200> jsData;
+  JsonDocument jsData;
   deserializeJson(jsData, rawContent);
   // reserialize back
   std::string sData = "";

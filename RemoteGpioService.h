@@ -14,10 +14,6 @@
 #include <LogStore.h>
 #include <WebServer.h>
 #include <WebsocketHandler.hpp>
-#include <defaults.h>
-
-// #define JSON_SIZE DEFAULT_JSON_SIZE
-#define JSON_MSG_SIZE DEFAULT_JSON_SIZE
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it
 // here.
@@ -164,7 +160,7 @@ void GpioRemoteService::extractMsg(std::string incomingMsg) {
   // std::cout << "[GpioRemoteService::unpackMsg] Incoming message " <<
   // incomingMsg
   //           << std::endl;
-  StaticJsonDocument<JSON_MSG_SIZE> root;
+  JsonDocument root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
 
