@@ -7,9 +7,6 @@
 #include <defaults.h>
 #include <string>
 
-// #define JSON_SIZE DEFAULT_JSON_SIZE
-#define JSON_MSG_SIZE DEFAULT_JSON_SIZE
-
 using namespace httpsserver;
 
 /*

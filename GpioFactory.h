@@ -1,10 +1,8 @@
 #include <ArduinoJson.h>
 #include <GpioPin.h>
-#include <defaults.h>
 #include <map>
 #include <string>
 // #include <miscUtils.h>
-#define JSON_SIZE DEFAULT_JSON_SIZE
 
 /*
  *  Static class to manage GPIO pins: find, alloc, free
@@ -46,7 +44,7 @@ GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
   // std::endl;
   // std::cout << "[GpioFactory::pinAlloc] pin: "<< pin << std::endl;
   GpioPin *pinInstance = GpioFactory::pinFind(pin);
-  StaticJsonDocument<JSON_SIZE> pinRoot;
+  JsonDocument pinRoot;
   // unpack json pin config
   deserializeJson(pinRoot, pinData);
 
@@ -91,7 +89,7 @@ int GpioFactory::pinAuto(int pin, std::string sPinData) {
   }
 
   if (pinInstance != NULL) {
-    StaticJsonDocument<JSON_SIZE> pinRoot;
+    JsonDocument pinRoot;
     // unpack json pin config
     deserializeJson(pinRoot, sPinData);
     int val = pinRoot["val"];

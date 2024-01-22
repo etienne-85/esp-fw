@@ -1,5 +1,4 @@
-#include <defaults.h>
-#define JSON_MSG_SIZE DEFAULT_JSON_SIZE
+#include <ArduinoJson.h>
 
 /*
  * Each inheriting class will be registered as subservice
@@ -11,7 +10,7 @@ class RemoteServiceListener {
   static std::map<std::string, RemoteServiceListener *> registeredServices;
 
 protected:
-  RemoteServiceListener(std::string serviceName);
+  RemoteServiceListener(std::string serviceId);
 
 public:
   static std::string dispatchMsg(std::string incomingMsg);
@@ -19,9 +18,9 @@ public:
   virtual std::string processMsg(std::string incomingMsg) = 0;
 };
 
-RemoteServiceListener::RemoteServiceListener(std::string serviceName) {
-  LogStore::info("[RemoteServiceListener] instancing service " + serviceName);
-  RemoteServiceListener::registeredServices.insert({serviceName, this});
+RemoteServiceListener::RemoteServiceListener(std::string serviceId) {
+  LogStore::info("[RemoteServiceListener] instancing service " + serviceId);
+  RemoteServiceListener::registeredServices.insert({serviceId, this});
 }
 
 // STATIC DEF
@@ -30,27 +29,35 @@ std::map<std::string, RemoteServiceListener *>
 
 // STATIC
 std::string RemoteServiceListener::dispatchMsg(std::string incomingMsg) {
-  StaticJsonDocument<JSON_MSG_SIZE> root;
+  JsonDocument inputRoot;
   // convert to a json object
-  DeserializationError error = deserializeJson(root, incomingMsg);
+  DeserializationError error = deserializeJson(inputRoot, incomingMsg);
 
   // root level props
-  std::string serviceName = root["serviceName"];
+  std::string serviceId = inputRoot["serviceId"];
   // find corresponding sub service
   auto matchingService =
-      RemoteServiceListener::registeredServices.find(serviceName);
+      RemoteServiceListener::registeredServices.find(serviceId);
   if (matchingService != RemoteServiceListener::registeredServices.end()) {
     LogStore::info(
         "[RemoteService::dispatchMsg] forwarding message to service " +
-        serviceName);
+        serviceId);
     // forward message to subservice handler
-    std::string reply = matchingService->second->processMsg(incomingMsg);
-    return reply;
+    std::string outputData = matchingService->second->processMsg(incomingMsg);
 
+    JsonDocument outputJson;
+    deserializeJson(outputJson, outputData);
+    // Build the JSON reply including serviceId and service output
+    JsonDocument outputRoot;
+    outputRoot["serviceId"] = serviceId;
+    outputRoot["output"] = outputJson;
+    std::string outgoingMsg("");
+    serializeJsonPretty(outputRoot, outgoingMsg);
+    return outgoingMsg;
   } else {
     LogStore::info(
         "[RemoteService::dispatchMsg] no registered service matching " +
-        serviceName);
+        serviceId);
   }
   return "";
 }

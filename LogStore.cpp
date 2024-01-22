@@ -24,7 +24,7 @@ void LogStore::dbg(string log) { LogStore::add(log, 1); }
 
 std::string LogStore::jsonExport() {
   LogStore::info("[LogStore::jsonExport] ");
-  StaticJsonDocument<2000> jsData;
+  JsonDocument jsData;
   JsonArray logs = jsData.createNestedArray("logs");
   for (auto const &item : LogStore::logBuffer) {
     LogData logData = item.second;
