@@ -1,10 +1,11 @@
-#include <ArduinoJson.h>
+#pragma once
+#include <map>
 
 /*
- * Each inheriting class will be registered as subservice
- * only singleton instance is allowed per inheriting class (or declared service)
- * when message is received, matching registered instance will be chosen to
- * process incoming message
+ * Each inheriting class will be registered as service and must be singleton
+ * when message is received, it will be dispatched to matching declared service
+ * instance
+ * Service can be reached from different interfaces (WS, LORA)
  */
 class RemoteServiceListener {
   static std::map<std::string, RemoteServiceListener *> registeredServices;
@@ -13,51 +14,8 @@ protected:
   RemoteServiceListener(std::string serviceId);
 
 public:
-  static std::string dispatchMsg(std::string incomingMsg);
+  static std::string dispatchMsg(std::string incomingMsg, int clientId = -1);
   // TO BE IMPLEMENTED IN CHILD CLASS
-  virtual std::string processMsg(std::string incomingMsg) = 0;
+  virtual std::string onServiceCall(std::string incomingMsg,
+                                    int clientId = -1) = 0;
 };
-
-RemoteServiceListener::RemoteServiceListener(std::string serviceId) {
-  LogStore::info("[RemoteServiceListener] instancing service " + serviceId);
-  RemoteServiceListener::registeredServices.insert({serviceId, this});
-}
-
-// STATIC DEF
-std::map<std::string, RemoteServiceListener *>
-    RemoteServiceListener::registeredServices;
-
-// STATIC
-std::string RemoteServiceListener::dispatchMsg(std::string incomingMsg) {
-  JsonDocument inputRoot;
-  // convert to a json object
-  DeserializationError error = deserializeJson(inputRoot, incomingMsg);
-
-  // root level props
-  std::string serviceId = inputRoot["serviceId"];
-  // find corresponding sub service
-  auto matchingService =
-      RemoteServiceListener::registeredServices.find(serviceId);
-  if (matchingService != RemoteServiceListener::registeredServices.end()) {
-    LogStore::info(
-        "[RemoteService::dispatchMsg] forwarding message to service " +
-        serviceId);
-    // forward message to subservice handler
-    std::string outputData = matchingService->second->processMsg(incomingMsg);
-
-    JsonDocument outputJson;
-    deserializeJson(outputJson, outputData);
-    // Build the JSON reply including serviceId and service output
-    JsonDocument outputRoot;
-    outputRoot["serviceId"] = serviceId;
-    outputRoot["output"] = outputJson;
-    std::string outgoingMsg("");
-    serializeJsonPretty(outputRoot, outgoingMsg);
-    return outgoingMsg;
-  } else {
-    LogStore::info(
-        "[RemoteService::dispatchMsg] no registered service matching " +
-        serviceId);
-  }
-  return "";
-}

@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <FileHandlers.h>
+#include <ConfigStore.h>
 #include <FsUtils.h>
 #include <LittleFS.h>
 #include <LogStore.h>
@@ -9,27 +9,22 @@
 
 class System {
 public:
-  static const JsonFileHandler *config; 
-
-public:
   static void coreInit();
   static void initFs();
-  static void setupWifiAP();
-  static void setupWifiSTA();
+  static void wifiConf();
+  static void activateWifiAP();
+  static void activateWifiSTA();
 };
 
-// const JsonFileHandler &System::config = JsonFileHandler(CONFIG_FILE);
-const JsonFileHandler *System::config = NULL;
-
 void System::coreInit() {
-  LogStore::info("[System::coreInit] Filesystem");
-  System::initFs();
-  LogStore::info("[System::coreInit] Config");
-  System::config = new JsonFileHandler(CONFIG_FILE);
-  // static JsonFileHandler config = JsonFileHandler(CONFIG_FILE);
-  LogStore::info("[System::coreInit] Network");
-  setupWifiAP();
-  setupWifiSTA();
+  LogStore::info("[System::init] Filesystem");
+  initFs();
+  LogStore::info("[System::init] Config");
+  ConfigStore::init();
+  LogStore::info("[System::init] Network");
+  wifiConf();
+  activateWifiAP();
+  activateWifiSTA();
 }
 
 void System::initFs() {
@@ -43,9 +38,24 @@ void System::initFs() {
   LogStore::info("[Core::FS] Done");
 }
 
-void System::setupWifiAP() {
-  std::string hotspotSSID = System::config->jsFileContent["hotspotSSID"];
-  std::string hotspotPWD = System::config->jsFileContent["hotspotPWD"];
+void System::wifiConf() {
+  LogStore::info("[System::wifiConf] setting static IP address");
+  // TODO load param from config file instead of using hardcoding
+  IPAddress local_IP(192, 168, 1, 201);
+  IPAddress gateway(192, 168, 1, 1);
+  IPAddress subnet(255, 255, 0, 0);
+  IPAddress primaryDNS(8, 8, 8, 8);   // optional
+  IPAddress secondaryDNS(8, 8, 4, 4); // optional
+  // Configures static IP address
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    LogStore::info("[System::wifiConf] STA Failed to configure");
+  }
+}
+
+// turn on wifi access point
+void System::activateWifiAP() {
+  std::string hotspotSSID = ConfigStore::setting("hotspotSSID");
+  std::string hotspotPWD = ConfigStore::setting("hotspotPWD");
   LogStore::info("[Core::WifiAP] Setting up access point " + hotspotSSID);
   WiFi.softAP(hotspotSSID.c_str(), hotspotPWD.c_str());
   LogStore::info("[Core::WifiAP] Hotspot " + std::string(hotspotSSID.c_str()) +
@@ -53,12 +63,14 @@ void System::setupWifiAP() {
                  std::string(WiFi.softAPIP().toString().c_str()));
 }
 
-void System::setupWifiSTA() {
+// turn on wifi client
+void System::activateWifiSTA() {
   int retryCounter = 10;
-  std::string wifiSSID = System::config->jsFileContent["wifiSSID"];
-  std::string wifiPWD = System::config->jsFileContent["wifiPWD"];
+  std::string wifiSSID = ConfigStore::setting("wifiSSID");
+  std::string wifiPWD = ConfigStore::setting("wifiPWD");
   LogStore::info("[Core::WifiSTA] Connecting to " +
                  std::string(wifiSSID.c_str()));
+  // any wifi conf must be called prior to this
   WiFi.begin(wifiSSID.c_str(), wifiPWD.c_str());
 
   // wait for connection

@@ -17,9 +17,9 @@ LogConsumer::LogConsumer() {
 }
 
 void LogConsumer::notifyAll(std::string logMsg) {
-  // for (auto logConsumer : LogConsumer::instances) {
-  //   logConsumer->onLog(logMsg);
-  // }
+  for (auto logConsumer : *LogConsumer::instances) {
+    logConsumer->onLog(logMsg);
+  }
 }
 
 void LogConsumer::onLog(std::string logMsg) {
