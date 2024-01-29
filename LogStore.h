@@ -21,6 +21,7 @@ public:
 
   static void info(string log);
   static void dbg(string log);
+  static void forget(string log);
 
-  static std::string jsonExport();
+  static std::string jsonExport(int logLevel = -1);
 };
