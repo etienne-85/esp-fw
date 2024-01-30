@@ -68,3 +68,5 @@ std::string LoraRepeaterService::onServiceCall(std::string incomingMsg, int clie
   // default empty reply
   return "";
 }
+
+#undef SERVICE_NAME
