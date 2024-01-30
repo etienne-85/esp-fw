@@ -25,20 +25,21 @@ class System {
 public:
   static void coreInit();
   static void initFs();
-  static void loadNetworkProfile(std::string profileName);
-  static void wifiConf();
-  static void activateWifiAP();
-  static void activateWifiSTA();
+  static void initLan();
+  static void loadLanProfile(std::string profileName);
+  static void staticIpConfig(std::string sStaticIP, std::string sGateway,
+                             std::string sSubnet, std::string sDns1,
+                             std::string sDns2);
+  static void activateWifiAP(std::string ssid, std::string pwd);
+  static void activateWifiSTA(std::string ssid, std::string pwd);
 };
 
 void System::coreInit() {
   LogStore::info("[System::init] Filesystem");
   initFs();
-  LogStore::info("[System::init] Network");
-  wifiConf();
-  activateWifiAP();
-  activateWifiSTA();
-  // loadNetworkProfile("tplink");
+  LogStore::info("[System::init] LAN");
+  initLan();
+  // activateWifiSTA();
 }
 
 void System::initFs() {
@@ -52,75 +53,99 @@ void System::initFs() {
   LogStore::info("[Core::FS] Done");
 }
 
-void System::loadNetworkProfile(std::string profileName) {
-  LogStore::info("[System::loadNetworkProfile] loading network profile: " +
-                 profileName);
-  JsonObject networkProfiles = ConfigStore::configContent()["networkProfiles"];
-  JsonObject profileContent = networkProfiles[profileName];
-  std::string profileContentDump = "";
-  serializeJsonPretty(profileContent, profileContentDump);
-  LogStore::dbg("[System::loadNetworkProfile] dump profile content " +
-                profileContentDump);
+void System::initLan() {
+  std::string apProfile = ConfigStore::configContent()["usedApProfile"];
+  std::string staProfile = ConfigStore::configContent()["usedStaProfile"];
+  LogStore::info("[System::initLan] using LAN profiles STA: " + staProfile +
+                 ", AP: " + apProfile);
+  std::string apBaseSSID =
+      ConfigStore::configContent()["networkProfiles"][apProfile]["ssid"];
+  std::string apPWD =
+      ConfigStore::configContent()["networkProfiles"][apProfile]["pwd"];
+  std::string deviceId = ConfigStore::configContent()["deviceId"];
+  std::string apFullSSID = apBaseSSID + "-" + deviceId;
+  activateWifiAP(apFullSSID, apPWD);
+  loadLanProfile(staProfile);
 }
 
-void System::wifiConf() {
-  LogStore::info("[System::wifiConf] setting static IP address");
-  // TODO load param from config file instead of using hardcoding
-  std::string sStaticIP = ConfigStore::configContent()["staticIP"];
-  std::string sGateway = ConfigStore::configContent()["gateway"];
-  std::string sSubnet = ConfigStore::configContent()["subnet"];
-  std::string sPrimaryDNS = ConfigStore::configContent()["primaryDNS"];
-  std::string sSecondaryDNS = ConfigStore::configContent()["secondaryDNS"];
-  LogStore::info("[System::wifiConf] LAN settings staticIP: " + sStaticIP +
-                 ", gateway: " + sGateway + ", subnet: " + sSubnet);
+void System::loadLanProfile(std::string profileName) {
+  LogStore::info("[System::loadLanProfile] loading network profile: " +
+                 profileName);
+  std::string ssid =
+      ConfigStore::configContent()["networkProfiles"][profileName]["ssid"];
+  std::string pwd =
+      ConfigStore::configContent()["networkProfiles"][profileName]["pwd"];
+  std::string staticIp =
+      ConfigStore::configContent()["networkProfiles"][profileName]["staticIP"];
+  LogStore::dbg("[System::loadLanProfile] SSID: " + ssid);
+  if (staticIp.length() && staticIp != "null") {
+    std::string gateway =
+        ConfigStore::configContent()["networkProfiles"][profileName]["gateway"];
+    std::string subnet =
+        ConfigStore::configContent()["networkProfiles"][profileName]["subnet"];
+    std::string primaryDns =
+        ConfigStore::configContent()["networkProfiles"][profileName]
+                                    ["primaryDNS"];
+    std::string secondaryDns =
+        ConfigStore::configContent()["networkProfiles"][profileName]
+                                    ["secondaryDNS"];
+    staticIpConfig(staticIp, gateway, subnet, primaryDns, secondaryDns);
+  }
+  activateWifiSTA(ssid, pwd);
+  // // NOT WORKING
+  // JsonObject networkProfiles =
+  // ConfigStore::configContent()["networkProfiles"]; if
+  // (!networkProfiles.isNull()) {
+  //   LogStore::dbg("[System::loadLanProfile] not null");
+  //   JsonObject profileContent = networkProfiles[profileName];
+  //   std::string contentDump = "";
+  //   serializeJsonPretty(networkProfiles, contentDump);
+  //   LogStore::dbg("[System::loadLanProfile] dump content " +
+  //   contentDump);
+  // } else {
+  //   LogStore::info(
+  //       "[System::loadLanProfile] couldn't read network profiles");
+  // }
+}
+
+void System::staticIpConfig(std::string sStaticIP, std::string sGateway,
+                            std::string sSubnet, std::string sDns1,
+                            std::string sDns2) {
+  LogStore::info("[System::staticIpConfig] IP LAN settings : " + sStaticIP +
+                 ", gateway: " + sGateway + ", subnet: " + sSubnet +
+                 ", dns1: " + sDns1 + ", dns2: " + sDns2);
   std::vector<int> viStaticIP =
       strVectToIntVect(splitFromCharDelim(sStaticIP, '.'));
   std::vector<int> viGateway =
       strVectToIntVect(splitFromCharDelim(sGateway, '.'));
   std::vector<int> viSubnet =
       strVectToIntVect(splitFromCharDelim(sSubnet, '.'));
-  std::vector<int> viPrimeDns =
-      strVectToIntVect(splitFromCharDelim(sPrimaryDNS, '.'));
-  std::vector<int> viSecondDNS =
-      strVectToIntVect(splitFromCharDelim(sSecondaryDNS, '.'));
+  std::vector<int> viDns1 = strVectToIntVect(splitFromCharDelim(sDns1, '.'));
+  std::vector<int> viDns2 = strVectToIntVect(splitFromCharDelim(sDns2, '.'));
 
-  IPAddress local_IP(viStaticIP.at(0), viStaticIP.at(1), viStaticIP.at(2),
-                     viStaticIP.at(3));
+  IPAddress ip(viStaticIP.at(0), viStaticIP.at(1), viStaticIP.at(2),
+               viStaticIP.at(3));
   IPAddress gateway(viGateway.at(0), viGateway.at(1), viGateway.at(2),
                     viGateway.at(3));
   IPAddress subnet(viSubnet.at(0), viSubnet.at(1), viSubnet.at(2),
                    viSubnet.at(3));
-  IPAddress primaryDNS(viPrimeDns.at(0), viPrimeDns.at(1), viPrimeDns.at(2),
-                       viPrimeDns.at(3)); // optional
-  IPAddress secondaryDNS(viSecondDNS.at(0), viSecondDNS.at(1),
-                         viSecondDNS.at(2),
-                         viSecondDNS.at(3)); // optional
+  // optional
+  IPAddress dns1(viDns1.at(0), viDns1.at(1), viDns1.at(2), viDns1.at(3));
+  IPAddress dns2(viDns2.at(0), viDns2.at(1), viDns2.at(2), viDns2.at(3));
   // Configures static IP address
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    LogStore::info("[System::wifiConf] STA Failed to configure");
+  if (!WiFi.config(ip, gateway, subnet, dns1, dns2)) {
+    LogStore::info(
+        "[System::staticIpConfig] Failed to configure static IP address");
   }
 }
 
-// turn on wifi access point
-void System::activateWifiAP() {
-  std::string hotspotSSID = ConfigStore::configContent()["hotspotSSID"];
-  std::string hotspotPWD = ConfigStore::configContent()["hotspotPWD"];
-  LogStore::info("[Core::WifiAP] Setting up access point " + hotspotSSID);
-  WiFi.softAP(hotspotSSID.c_str(), hotspotPWD.c_str());
-  LogStore::info("[Core::WifiAP] Hotspot " + std::string(hotspotSSID.c_str()) +
-                 " available at " +
-                 std::string(WiFi.softAPIP().toString().c_str()));
-}
-
 // turn on wifi client
-void System::activateWifiSTA() {
+void System::activateWifiSTA(std::string ssid, std::string pwd) {
   int retryCounter = 10;
-  std::string wifiSSID = ConfigStore::configContent()["wifiSSID"];
-  std::string wifiPWD = ConfigStore::configContent()["wifiPWD"];
-  LogStore::info("[Core::WifiSTA] Connecting to " +
-                 std::string(wifiSSID.c_str()));
+  LogStore::info("[System::activateWifiSTA] Connecting to " +
+                 std::string(ssid.c_str()));
   // any wifi conf must be called prior to this
-  WiFi.begin(wifiSSID.c_str(), wifiPWD.c_str());
+  WiFi.begin(ssid.c_str(), pwd.c_str());
 
   // wait for connection
   while (retryCounter > 0 && WiFi.status() != WL_CONNECTED) {
@@ -131,8 +156,18 @@ void System::activateWifiSTA() {
 
   if (WiFi.status() == WL_CONNECTED) {
     std::string ipAddr(WiFi.localIP().toString().c_str());
-    LogStore::info("[Core::WifiSTA] Connected with address: " + ipAddr);
+    LogStore::info("[System::activateWifiSTA] Connected with address: " +
+                   ipAddr);
   } else {
-    LogStore::info("[Core::WifiSTA] Could not connect to LAN");
+    LogStore::info("[System::activateWifiSTA] Could not connect to LAN");
   }
+}
+
+// turn on wifi access point
+void System::activateWifiAP(std::string ssid, std::string pwd) {
+  LogStore::info("[System::activateWifiAP] Setting up access point " + ssid);
+  WiFi.softAP(ssid.c_str(), pwd.c_str());
+  std::string ipAddress(WiFi.softAPIP().toString().c_str());
+  LogStore::info("[System::activateWifiAP] Hotspot " + ssid + " available at " +
+                 ipAddress);
 }
