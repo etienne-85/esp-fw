@@ -40,8 +40,8 @@ LoraRemoteInterface &LoraRemoteInterface::instance() {
 
 void LoraRemoteInterface::init() {
   LogStore::dbg("[LoraRemoteInterface::init] MOSI: " + std::to_string(MOSI) +
-                 " MISO: " + std::to_string(MISO) +
-                 " SCK: " + std::to_string(SCK) + " SS: " + std::to_string(SS));
+                " MISO: " + std::to_string(MISO) +
+                " SCK: " + std::to_string(SCK) + " SS: " + std::to_string(SS));
 
   // setup LoRa transceiver module
   LoRa.setPins(ss, rst, dio0);
@@ -64,7 +64,7 @@ void LoraRemoteInterface::init() {
 
 void LoraRemoteInterface::send(std::string outgoingMsg) {
   LogStore::dbg("[LoraRemoteInterface::send] Sending packet #" +
-                 std::to_string(packetsCount));
+                std::to_string(packetsCount));
 
   // Send LoRa packet to recipient
   LoRa.beginPacket();
@@ -99,7 +99,7 @@ void LoraRemoteInterface::filterMessage(std::string incomingMsg) {
   // root level props common to all services
   // std::string sender = root["src"];
   std::string recipient = root["dst"];
-  std::string deviceId = ConfigStore::setting("deviceId");
+  std::string deviceId = ConfigStore::configContent()["deviceId"];
   if (recipient == deviceId) {
     onMessage(incomingMsg);
   } else {
@@ -128,7 +128,7 @@ void LoraRemoteInterface::onMessage(std::string incomingMsg) {
 //   LoRa.writeRegister(reg, val);
 // }
 
-#undef ss 10
-#undef rst 14
-#undef dio0 2
-#undef DELAY 5000
+#undef ss
+#undef rst
+#undef dio0
+#undef DELAY

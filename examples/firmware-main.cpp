@@ -39,7 +39,8 @@ void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   LogStore::info("*** System core init ***");
   System::coreInit();
-  LogStore::info("DeviceID: " + ConfigStore::setting("deviceId"));
+  std::string deviceId = ConfigStore::configContent()["deviceId"];
+  LogStore::info("DeviceID: " + deviceId);
   LogStore::info("");
   LogStore::info("*** Services ***");
   // TestLogConsumer::instance();
