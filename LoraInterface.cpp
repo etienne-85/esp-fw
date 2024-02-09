@@ -1,13 +1,5 @@
-#include <LoRa.h>
 #include <LogStore.h>
-#include <RemoteServiceListener.h>
-#include <SPI.h>
-
-/**
- * Lora remote service entry
- * incoming LORA msg => RemoteService input
- * RemoteService output => outgoing LORA msg
- */
+#include <LoraInterface.h>
 // define the pins used by the transceiver module
 #define ss 10
 #define rst 14
@@ -16,30 +8,14 @@
 
 int packetsCount = 0;
 
-/**
- * LORA radio/wireless communication protocol
- * Receive Lora message and forward to corresponding service
- */
-class LoraRemoteInterface {
-
-public:
-  static LoraRemoteInterface &instance();
-  void init();
-  // void configure(int reg, int val);
-  void send(std::string msg);
-  void listen();
-  void filterMessage(std::string incomingMsg);
-  void onMessage(std::string incomingMsg);
-};
-
-LoraRemoteInterface &LoraRemoteInterface::instance() {
+LoraInterface &LoraInterface::instance() {
   // check if service already exists, otherwise create one
-  static LoraRemoteInterface singleton;
+  static LoraInterface singleton;
   return singleton;
 }
 
-void LoraRemoteInterface::init() {
-  LogStore::dbg("[LoraRemoteInterface::init] MOSI: " + std::to_string(MOSI) +
+void LoraInterface::init() {
+  LogStore::dbg("[LoraInterface::init] MOSI: " + std::to_string(MOSI) +
                 " MISO: " + std::to_string(MISO) +
                 " SCK: " + std::to_string(SCK) + " SS: " + std::to_string(SS));
 
@@ -59,22 +35,27 @@ void LoraRemoteInterface::init() {
   // transceivers ranges from 0-0xFF
   LoRa.setSyncWord(0x64);
   LoRa.setSpreadingFactor(12);
-  LogStore::info("[LoraRemoteInterface::init] LORA interface available");
+  LogStore::info("[LoraInterface::init] LORA interface available");
 }
 
-void LoraRemoteInterface::send(std::string outgoingMsg) {
-  LogStore::dbg("[LoraRemoteInterface::send] Sending packet #" +
+void LoraInterface::sendText(std::string outgoingMsg) {
+  LogStore::dbg("[LoraInterface::send] Sending packet #" +
                 std::to_string(packetsCount));
 
   // Send LoRa packet to recipient
   LoRa.beginPacket();
   LoRa.print(outgoingMsg.c_str());
   LoRa.endPacket();
-  LogStore::info("[LoraRemoteInterface::send] SENT packet ");
+  LogStore::info("[LoraInterface::send] SENT packet ");
   LogStore::dbg(outgoingMsg);
 }
 
-void LoraRemoteInterface::listen() {
+void LoraInterface::notifyClient(std::string notif) {
+  std::string msg("");
+  sendText(msg);
+}
+
+void LoraInterface::listen() {
   // try to parse packet
   int packetSize = LoRa.parsePacket();
   std::string incomingMsg("");
@@ -82,7 +63,7 @@ void LoraRemoteInterface::listen() {
   if (packetSize) {
     packetsCount++;
     // received a packet
-    LogStore::info("[LoraRemoteInterface::listen] RECEIVED packet");
+    LogStore::info("[LoraInterface::listen] RECEIVED packet");
     // read packet
     while (LoRa.available()) {
       incomingMsg = LoRa.readString().c_str();
@@ -92,38 +73,38 @@ void LoraRemoteInterface::listen() {
   }
 }
 
-void LoraRemoteInterface::filterMessage(std::string incomingMsg) {
+void LoraInterface::filterMessage(std::string incomingMsg) {
   JsonDocument root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
   // root level props common to all services
   // std::string sender = root["src"];
   std::string recipient = root["dst"];
-  std::string deviceId = ConfigStore::configContent()["deviceId"];
+  std::string deviceId = System::cfgStore.configContent()["deviceId"];
   if (recipient == deviceId) {
     onMessage(incomingMsg);
   } else {
     LogStore::info(
-        "[LoraRemoteInterface::filterMessage] reject message addressed to " +
+        "[LoraInterface::filterMessage] reject message addressed to " +
         recipient + " received on " + deviceId);
   }
 }
 
-void LoraRemoteInterface::onMessage(std::string incomingMsg) {
+void LoraInterface::onMessage(std::string incomingMsg) {
   // service dispatching
-  std::string serviceOutput = RemoteServiceListener::dispatchMsg(incomingMsg);
+  std::string serviceOutput = MessageListener::dispatchMsg(incomingMsg);
   if (serviceOutput.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
     // outgoingMsg);
-    send(serviceOutput);
+    sendText(serviceOutput);
   } else {
     // LogStore::info(
-    //     "[LoraRemoteInterface::onMessage] empty message => no reply sent");
+    //     "[LoraInterface::onMessage] empty message => no reply sent");
   }
 }
 
-// void LoraRemoteInterface::configure(int reg, int val) {
-//   LogStore::info("[LoraRemoteInterface::configure] set register " +
+// void LoraInterface::configure(int reg, int val) {
+//   LogStore::info("[LoraInterface::configure] set register " +
 //                  std::to_string(reg) + " to value " + std::to_string(val));
 //   LoRa.writeRegister(reg, val);
 // }

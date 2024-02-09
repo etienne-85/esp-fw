@@ -1,25 +1,22 @@
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
-#include <RemoteLogService.h>
-#include <RemoteServiceListener.h>
+#include <MessageListener.h>
 #include <WebServer.h>
-#include <WsRemoteInterface.h>
+#include <WsInterface.h>
 /****************************
  *** INSTANCE DEFINITIONS ***
  ****************************/
 
-WsRemoteInterface::WsRemoteInterface(int clientId)
-    : WebsocketHandler(), clientId(clientId) {
-  LogStore::info("[WsRemoteInterface] Client #" + std::to_string(clientId) +
-                 " connected");
+WsInterface::WsInterface(std::string clientKey)
+    : WebsocketHandler(), clientKey(clientKey) {
+  LogStore::info("[WsInterface] Client " + clientKey + " connected");
 }
 
 // When the websocket is closing, we remove the client from the array
-void WsRemoteInterface::onClose() {
-  LogStore::info("[WsRemoteInterface] Client #" + std::to_string(clientId) +
-                 " disconnected");
+void WsInterface::onClose() {
+  LogStore::info("[WsInterface] Client " + clientKey + " disconnected");
   // remove any subscriptions of client
-  LogRemoteService::instance().unsubscribe(clientId);
+  // LogRemoteService::instance().unsubscribe(clientId);
   // for(int i = 0; i < MAX_CLIENTS; i++) {
   //   if (activeClients[i] == this) {
   //     activeClients[i] = nullptr;
@@ -39,12 +36,13 @@ void WsRemoteInterface::onClose() {
 //       {virtualServiceRoute, serviceSingleton});
 // }
 
-void WsRemoteInterface::registerDefaultServiceRoute() {
+void WsInterface::registerDefaultServiceRoute() {
   std::string defaultRoute("/ws");
   // create dedicated socket node
   WebsocketNode *webSocketNode =
       new WebsocketNode(defaultRoute, &instanceOnClientConnect);
-  LogStore::info("[WsRemoteInterface::initDefaultService] on route: " +
+  LogStore::info("[WsInterface::initDefaultService] WS interface "
+                 "available: using default route: " +
                  defaultRoute);
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
@@ -56,13 +54,12 @@ void WsRemoteInterface::registerDefaultServiceRoute() {
  * handlerBuilder is a static method from child class able to create service
  * instance
  */
-void WsRemoteInterface::registerService(std::string serviceRoute,
-                                        WebsocketHandler *(*handlerBuilder)()) {
+void WsInterface::registerService(std::string serviceRoute,
+                                  WebsocketHandler *(*handlerBuilder)()) {
   // create dedicated socket node
   WebsocketNode *webSocketNode =
       new WebsocketNode(serviceRoute, handlerBuilder);
-  LogStore::info("[WsRemoteInterface::registerService] on route: " +
-                 serviceRoute);
+  LogStore::info("[WsInterface::registerService] on route: " + serviceRoute);
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
 }
@@ -72,32 +69,43 @@ void WsRemoteInterface::registerService(std::string serviceRoute,
  * can be overridden by providing custom callback at service registration
  */
 
-void WsRemoteInterface::onMessage(WebsocketInputStreambuf *inbuf) {
+void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
   // Get the input message
   std::ostringstream ss;
   std::string incomingMsg;
   ss << inbuf;
   incomingMsg = ss.str();
-  LogStore::dbg("[RemoteService::onMessage] clientId: " +
-                std::to_string(clientId));
+  LogStore::dbg("[WsInterface::onMessage] clientKey: " + clientKey);
 
+  // TODO publish MSG event
   std::string outgoingMsg =
-      RemoteServiceListener::dispatchMsg(incomingMsg, clientId);
+      MessageListener::dispatchMsg(incomingMsg, clientKey);
   if (outgoingMsg.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
     // outgoingMsg);
-    LogStore::info("[RemoteService::onMessage] sending REPLY ");
+    LogStore::info("[WsInterface::onMessage] REPLYING ");
     this->send(outgoingMsg, SEND_TYPE_TEXT);
   } else {
-    // LogStore::info("[WsRemoteInterface::onMessage] empty message => no reply
+    // LogStore::info("[WsInterface::onMessage] empty message => no reply
     // sent");
+  }
+}
+
+void WsInterface::notifyClient(std::string notification) {
+  WsInterface *theClientInstance = clientInstance(clientKey);
+  if (theClientInstance != nullptr) {
+    theClientInstance->send(notification, SEND_TYPE_TEXT);
+  } else {
+    LogStore::dbg("[WsInterface::notifyClient] no client #" + clientKey +
+                      " found ",
+                  true);
   }
 }
 
 /**************************
  *** STATIC DEFINITIONS ***
  **************************/
-std::map<int, WsRemoteInterface *> WsRemoteInterface::instances;
+std::map<std::string, WsInterface *> WsInterface::instances;
 // std::map<std::string, RemoteService *> RemoteService::registeredServices;
 
 // WebsocketNode *RemoteService::webSocketNode =
@@ -115,25 +123,26 @@ std::map<int, WsRemoteInterface *> WsRemoteInterface::instances;
  * 2 clients connected on 2 different routes => 4 total instances
  *
  */
-WebsocketHandler *WsRemoteInterface::instanceOnClientConnect() {
-  WsRemoteInterface *instance = NULL;
-  int clientNb = WsRemoteInterface::instances.size();
-  if (WsRemoteInterface::instances.size() < MAX_CLIENTS) {
-    instance = new WsRemoteInterface(clientNb);
-    WsRemoteInterface::instances.insert({clientNb, instance});
+WebsocketHandler *WsInterface::instanceOnClientConnect() {
+  WsInterface *instance = NULL;
+  int clientNb = WsInterface::instances.size();
+  std::string clientKey = "wsClient#" + std::to_string(clientNb);
+  if (WsInterface::instances.size() < MAX_CLIENTS) {
+    instance = new WsInterface(clientKey);
+    WsInterface::instances.insert({clientKey, instance});
   } else {
     LogStore::info(
-        "[WsRemoteInterface::instanceOnClientConnect] reject max number of "
-        "client reached #" +
-        std::to_string(clientNb));
+        "[WsInterface::instanceOnClientConnect] reject max number of "
+        "client reached " +
+        clientKey);
   }
   // will be cast to WebsocketHandler*
   return instance;
 }
 
-void WsRemoteInterface::notifyClient(int clientKey, std::string notification) {
-  WsRemoteInterface *clientInstance = WsRemoteInterface::instances[clientKey];
-  clientInstance->send(notification, SEND_TYPE_TEXT);
+WsInterface *WsInterface::clientInstance(std::string clientKey) {
+  auto pairItem = WsInterface::instances.find(clientKey);
+  return pairItem != WsInterface::instances.end() ? pairItem->second : nullptr;
 }
 
 /**

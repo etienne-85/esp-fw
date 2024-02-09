@@ -1,12 +1,13 @@
 #include <ArduinoJson.h>
 #include <LogStore.h>
+#include <LoraInterface.h>
 #include <string>
 
 #define SERVICE_NAME "loraRepeater"
 /*
 ECHO, REPEATER, GATEWAY
-register as remote service (both available on WS and LORA interface) 
-Its sole purpose is to echo message on LORA interface 
+register as remote service (both available on WS and LORA interface)
+Its sole purpose is to echo message on LORA interface
 or proxy message received on WS over LORA interface
 
 
@@ -33,38 +34,39 @@ Device#2 repeat wrapped message over LORA
 /*
  *   Supporting recursive repeating
  */
-class LoraRepeaterService : public RemoteServiceListener {
+class MessageRepeaterService : public MessageListener {
 public:
-  static LoraRepeaterService &instance();
+  static MessageRepeaterService &instance();
 
 private:
-  LoraRepeaterService();
+  MessageRepeaterService();
 
 public:
-  std::string onServiceCall(std::string incomingMsg, int clientId = -1);
+  std::string onCall(std::string incomingMsg, std::string clientKey = "");
 };
 
 /**************************
  *** STATIC DEFINITIONS ***
  **************************/
 
-LoraRepeaterService &LoraRepeaterService::instance() {
-  static LoraRepeaterService singleton;
+MessageRepeaterService &MessageRepeaterService::instance() {
+  static MessageRepeaterService singleton;
   return singleton;
 }
 
-LoraRepeaterService::LoraRepeaterService()
-    : RemoteServiceListener(SERVICE_NAME) {}
+MessageRepeaterService::MessageRepeaterService()
+    : MessageListener(SERVICE_NAME) {}
 
-std::string LoraRepeaterService::onServiceCall(std::string incomingMsg, int clientId) {
-  LogStore::info("[LoraRepeaterService::onServiceCall] ");
+std::string MessageRepeaterService::onCall(std::string incomingMsg,
+                                        std::string clientKey) {
+  LogStore::info("[MessageRepeaterService::onCall] ");
   JsonDocument root;
   // convert to a json object
   DeserializationError error = deserializeJson(root, incomingMsg);
 
   // extract wrapMsg and send over LORA
   std::string wrapMsg = root["wrap"]; // null if not filled
-  LoraRemoteInterface::instance().send(wrapMsg);
+  LoraInterface::instance().sendText(wrapMsg);
   // default empty reply
   return "";
 }
