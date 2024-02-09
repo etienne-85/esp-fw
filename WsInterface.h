@@ -1,52 +1,37 @@
 #pragma once
 #include <ArduinoJson.h>
+#include <Events.h>
+#include <MessageInterface.h>
 #include <WebsocketHandler.hpp>
 #include <defaults.h>
 #include <string>
-
 using namespace httpsserver;
 
-/*
- * Acting as a proxy or dispatcher for other (sub)services
- * All messages received on main websocket route are rerouted to
- * subservices inheriting the RemoteServiceListener class
- * based on service name provided in following JSON message structure:
- * {
- *    serviceId: targeted subservice
- *    dataIn: service data input
- * }
- *
- * Optional service reply will be formed
- *
- *  {
- *    serviceId: targeted subservice
- *    dataOut: service data output
- * }
- *
- *  Example of remote sub-services
- *  - GPIO control
- *  - FS operations (usecase: read log file, change settings file)
- *  - LOGS: flush logs buffer
- *  - ADMIN setup: ESP settings
- *  - MONITORING:
+/* 
+  Websocket message interface suitable for real time communication
+  between ESP and remote clients (mainly browsers)
+  Any received message will be dispatched to message handlers
+  depending on message handle type
+  For sake of simplification, "/ws" is used as default route
+  Any remote client connected will create new instance of this class
  */
 
-class WsRemoteInterface : public WebsocketHandler {
+class WsInterface : public MessageInterface, public WebsocketHandler, public EventTrigger {
 public:
   // STATIC MEMBERS
   // static std::map<std::string, RemoteService *> registeredServices;
 
   // ws route registration on secured webserver
   //   static WebsocketNode *webSocketNode;
-  static std::map<int, WsRemoteInterface *>
-      instances; // dedicated instance for each connected client
+  // dedicated instance for each connected client
+  static std::map<std::string, WsInterface *> instances;
 
   // each connected client creates a dedicated instance of this class
   static WebsocketHandler *instanceOnClientConnect();
 
   // MEMBERS
   std::string serviceRoute;
-  int clientId = 0;
+  std::string clientKey = 0;
 
   // STATIC METHODS
   // public:
@@ -57,11 +42,12 @@ public:
 
   static void registerDefaultServiceRoute();
 
-  static void notifyClient(int clientKey, std::string notification);
+  void notifyClient(std::string notification);
+  static WsInterface *clientInstance(std::string clientKey);
 
   // METHODS
 protected:
-  WsRemoteInterface(int clientId);
+  WsInterface(std::string clientKey);
 
 public:
   // Inherited from base class

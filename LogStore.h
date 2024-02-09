@@ -1,4 +1,5 @@
 #pragma once
+#include <Events.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -14,14 +15,13 @@ struct LogData {
   int timestamp;
 };
 
-class LogStore {
+class LogStore : public EventTrigger {
 public:
   static std::map<int, LogData> logBuffer;
-  static void add(string log, int logLevel);
+  static void add(string log, int logLevel, bool bypassEvtQueue = false);
 
-  static void info(string log);
-  static void dbg(string log);
-  static void forget(string log);
+  static void info(string log, bool silentNotif = false);
+  static void dbg(string log, bool silentNotif = false);
 
   static std::string jsonExport(int logLevel = -1);
 };
