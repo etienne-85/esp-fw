@@ -90,9 +90,9 @@ void LoraInterface::filterMessage(std::string incomingMsg) {
   }
 }
 
-void LoraInterface::onMessage(std::string incomingMsg) {
+std::string LoraInterface::onMessage(std::string incomingMsg) {
   // service dispatching
-  std::string serviceOutput = MessageListener::dispatchMsg(incomingMsg);
+  std::string serviceOutput = MessageInterface::onMessage(incomingMsg);
   if (serviceOutput.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
     // outgoingMsg);
@@ -101,6 +101,7 @@ void LoraInterface::onMessage(std::string incomingMsg) {
     // LogStore::info(
     //     "[LoraInterface::onMessage] empty message => no reply sent");
   }
+  return "";
 }
 
 // void LoraInterface::configure(int reg, int val) {

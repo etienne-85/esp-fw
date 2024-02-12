@@ -3,18 +3,39 @@
 #include <LoraInterface.h>
 #include <WsInterface.h>
 
+// std::map<std::string, EventType> EventTypeMap{{"LOG", LOG},
+//                                               {"PIN", PIN},
+//                                               {"MSGNOT", MSGNOT},
+//                                               {"MSGFWD", MSGFWD},
+//                                               {"MSGREP", MSGREP}};
+std::map<EventType, std::string> EventTypeMap{{LOG, "LOG"}, {PIN, "PIN"}};
+
 /*
  * EventTrigger
  */
 
-std::vector<EventTrigger *> EventTrigger::publishers;
+std::queue<Event> EventQueue::events;
 
-void EventTrigger::pushEvent(std::string eventData, EventType eventType) {
-  // LogStore::info("[EventTrigger::pushEvent] eventType: " +
-  //                    std::to_string(eventType) + ", eventData: " +
-  //                    eventData,
-  //                true);
-  EventHandler::dispatchEvt(eventData, eventType);
+void EventQueue::pushEvent(Event evt, bool bypassEvtQueue) {
+  // will directly call evtDispatch synchronously
+  if (bypassEvtQueue) {
+    EventHandler::dispatchEvt(evt);
+  } else {
+    EventQueue::events.push(evt);
+  }
+};
+
+void EventQueue::watchEvents() {
+  if (EventQueue::events.size() > 0) {
+    Event evt = EventQueue::events.front();
+    bool dispatched = EventHandler::dispatchEvt(evt);
+    if (!dispatched) {
+      LogStore::dbg("[EventQueue::watchEvents] undispatched event " + evt.type +
+                    " => put in "
+                    "waiting queue ");
+    }
+    EventQueue::events.pop();
+  }
 };
 
 /*
@@ -23,17 +44,22 @@ void EventTrigger::pushEvent(std::string eventData, EventType eventType) {
 
 std::vector<EventHandler *> EventHandler::subscribers;
 
-EventHandler::EventHandler(EventType evtType) : evtType(evtType) {
+EventHandler::EventHandler(std::string evtType) : evtType(evtType) {
   subscribers.push_back(this);
   //   LogStore::dbg("[EventHandler::constructor] instances count " +
   //                 std::to_string(subscribers.size()));
 };
 
-void EventHandler::dispatchEvt(std::string eventData, EventType eventType) {
+bool EventHandler::dispatchEvt(Event evt) {
   //   LogStore::dbg("[EventHandler::dispatchEvt] " + eventData, true);
+  bool dispatched = false;
   for (EventHandler *instance : EventHandler::subscribers) {
-    instance->onEvent(eventData);
+    if (evt.type == instance->evtType) {
+      dispatched = true;
+      instance->onEvent(evt.data);
+    }
   }
+  return dispatched;
 };
 
 void EventHandler::onEvent(std::string eventData) {

@@ -9,20 +9,14 @@ incomingMsg ----->  |   Interface   | ----
                     +---------------+     |
                                           v
 */
-class MessageInterface {
-public:
-  virtual void notifyClient(std::string msg) = 0;
-};
-
 enum MessageInterfaceType { WS, LORA };
 
-// to be handled by MessageInterface
-struct OutgoingMessageEvent {
-  MessageInterfaceType msgSrc; 
-  std::string clientKey;
-};
+class MessageInterface {
+protected:
+  MessageInterfaceType type;
+  virtual std::string onMessage(std::string incomingMsg);
+  std::string injectEvent(std::string incomingMsg);
 
-struct IncomingMessageEvent {
-  MessageInterfaceType msgSrc; 
-  std::string clientKey;
+public:
+  virtual void notifyClient(std::string msg) = 0;
 };

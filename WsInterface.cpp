@@ -1,6 +1,5 @@
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
-#include <MessageListener.h>
 #include <WebServer.h>
 #include <WsInterface.h>
 /****************************
@@ -42,7 +41,7 @@ void WsInterface::registerDefaultServiceRoute() {
   WebsocketNode *webSocketNode =
       new WebsocketNode(defaultRoute, &instanceOnClientConnect);
   LogStore::info("[WsInterface::initDefaultService] WS interface "
-                 "available: using default route: " +
+                 "available on default route: " +
                  defaultRoute);
   // register ws service to main secured server
   WebServer::instance().secureServer.registerNode(webSocketNode);
@@ -78,8 +77,7 @@ void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
   LogStore::dbg("[WsInterface::onMessage] clientKey: " + clientKey);
 
   // TODO publish MSG event
-  std::string outgoingMsg =
-      MessageListener::dispatchMsg(incomingMsg, clientKey);
+  std::string outgoingMsg = MessageInterface::onMessage(incomingMsg);
   if (outgoingMsg.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
     // outgoingMsg);
@@ -97,8 +95,7 @@ void WsInterface::notifyClient(std::string notification) {
     theClientInstance->send(notification, SEND_TYPE_TEXT);
   } else {
     LogStore::dbg("[WsInterface::notifyClient] no client #" + clientKey +
-                      " found ",
-                  true);
+                  " found ");
   }
 }
 

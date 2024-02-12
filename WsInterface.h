@@ -16,7 +16,7 @@ using namespace httpsserver;
   Any remote client connected will create new instance of this class
  */
 
-class WsInterface : public MessageInterface, public WebsocketHandler, public EventTrigger {
+class WsInterface : public MessageInterface, public WebsocketHandler {
 public:
   // STATIC MEMBERS
   // static std::map<std::string, RemoteService *> registeredServices;
@@ -31,7 +31,7 @@ public:
 
   // MEMBERS
   std::string serviceRoute;
-  std::string clientKey = 0;
+  std::string clientKey;
 
   // STATIC METHODS
   // public:
