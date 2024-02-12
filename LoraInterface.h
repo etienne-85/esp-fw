@@ -3,7 +3,6 @@
 #include <System.h>
 #include <MessageInterface.h>
 #include <LoRa.h>
-#include <MessageListener.h>
 #include <SPI.h>
 
 /**
@@ -20,5 +19,5 @@ public:
   void notifyClient(std::string notif);
   void listen();
   void filterMessage(std::string incomingMsg);
-  void onMessage(std::string incomingMsg);
+  std::string onMessage(std::string incomingMsg);
 };

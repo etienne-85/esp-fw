@@ -15,13 +15,13 @@ struct LogData {
   int timestamp;
 };
 
-class LogStore : public EventTrigger {
+class LogStore {
 public:
   static std::map<int, LogData> logBuffer;
   static void add(string log, int logLevel, bool bypassEvtQueue = false);
 
-  static void info(string log, bool silentNotif = false);
-  static void dbg(string log, bool silentNotif = false);
+  static void info(string log);
+  static void dbg(string log);
 
   static std::string jsonExport(int logLevel = -1);
 };
