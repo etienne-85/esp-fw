@@ -12,22 +12,7 @@ ApiModule::ApiModule(std::string msgType) {
 // STATIC DEF
 std::map<std::string, ApiModule *> ApiModule::registeredApiModules;
 
-std::string ApiModule::dispatchApiRequest(std::string apiRequestMsg) {
-  JsonDocument apiRequest;
-  // convert to a json object
-  DeserializationError error = deserializeJson(apiRequest, apiRequestMsg);
-  std::string interfaceType = "<type>";
-  LogStore::dbg("[MessageInterface::onMessage] received message on " +
-                interfaceType + " interface: " + apiRequestMsg);
-  // root msg level props
-  // std::string msgContext = msgRoot["context"];
-  // API module, submodule, command
-  JsonObject apiData = apiRequest["api"];
-  std::string apiModuleName = apiData["module"];
-  std::string apiSubmodule = apiData["submod"];
-  std::string apiCmd = apiData["cmd"];
-  std::string apiInput = apiData["input"]; // API module/submodule input data
-
+std::string ApiModule::dispatchApiCall(ApiCall &apiCall) {
   // TODO
   // std::string msgSrc = type; // interface type (LORA,WS)
   // std::string msgCtx = msgRoot["ctx"];
@@ -40,13 +25,12 @@ std::string ApiModule::dispatchApiRequest(std::string apiRequestMsg) {
   // bool bypassEvtQueue(msgMode == "sync");
   // EventQueue::pushEvent(event, bypassEvtQueue);
   // find corresponding sub service
-  auto apiModule = ApiModule::registeredApiModules.find(apiModuleName);
+  auto apiModule = ApiModule::registeredApiModules.find(apiCall.apiModule);
   if (apiModule != ApiModule::registeredApiModules.end()) {
     LogStore::info(
-        "[ApiModule::dispatchApiRequest] API request dispatched to module " +
-        apiModuleName);
-    //     std::string dataOut = apiModule->second->onApiCall(incomingMsg,
-    //     clientKey);
+        "[ApiModule::dispatchApiCall] API request dispatched to module " +
+        apiCall.apiModule);
+    std::string dataOut = apiModule->second->onApiCall(apiCall);
     //     // default empty reply
     //     std::string outgoingMsg("");
     //     bool expectedReply = timestamp > 0 || dataOut.length() > 0;
@@ -72,8 +56,8 @@ std::string ApiModule::dispatchApiRequest(std::string apiRequestMsg) {
     //     }
     //     return outgoingMsg;
   } else {
-    LogStore::info("[ApiModule::dispatchMsg] unregistered API module: " +
-                   apiModuleName);
+    LogStore::info("[ApiModule::dispatchApiCall] unregistered API module: " +
+                   apiCall.apiModule);
   }
   return "";
 }

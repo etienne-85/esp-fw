@@ -1,4 +1,5 @@
 #pragma once
+#include <CommonObjects.h>
 #include <MessageInterface.h>
 #include <map>
 #include <queue>
@@ -74,29 +75,33 @@ instancing RemoteEventListener
 // local: triggered from within system
 // remote/external/injected: received from external source (through messages)
 // and injected in queue
-enum EventOrigin { LOCAL, REMOTE };
+// enum EventOrigin { LOCAL, REMOTE };
 
-typedef struct {
-  EventOrigin origin = EventOrigin::LOCAL;
-  int timestamp = 0;
-  int priority = 0;
-} EventContext;
+// typedef struct {
+//   // EventOrigin origin = EventOrigin::LOCAL;
+//   std::string source = "local";
+//   int timestamp = 0;
+//   int priority = 0;
+// } EventContext;
 
-typedef struct {
-  std::string type;
-  EventContext context;
-  std::string data;
-} Event;
+// typedef struct {
+//   std::string type;
+//   EventContext context;
+//   std::string data;
+// } Event;
 
-enum EventType { LOG, PIN, TST, MSGNOT, MSGFWD, MSGREP };
+enum EventType { LOG, PIN, EXT };
 extern std::map<EventType, std::string> EventTypeMap;
 
 class EventQueue {
-  static std::queue<Event> events;
+  static std::queue<Event> local;
+  // static std::queue<Event> external; // storing external events
 
 public:
   static void pushEvent(Event evt, bool bypassEvtQueue = false);
   static void watchEvents();
+  // static void injectRemoteEvent(Event evt, bool bypassEvtQueue = false);
+  // static void watchRemoteEvents();
 };
 
 /*
@@ -115,7 +120,34 @@ public:
   static bool dispatchEvt(Event evt);
 
   // static void notify(int pinId, int pinVal);
-  virtual void onEvent(std::string eventData);
+  virtual void onEvent(Event evt);
 };
 
-class RemoteEventListener : public EventHandler {};
+/*
+ * handling external events
+ */
+// class RemoteEventHandler {
+// public:
+//   static std::vector<EventHandler *> subscribers;
+//   std::string evtType;
+
+// protected:
+//   EventHandler(std::string evt);
+
+// public:
+//   static bool dispatchRemoteEvt(Event evt);
+
+//   // static void notify(int pinId, int pinVal);
+//   virtual void onRemoteEvent(std::string eventData);
+// };
+
+/*
+* API call MSG struct
+  {
+    apiCall: "Test:sandbox",
+    apiData: ""
+  }
+  apiModule: Test,
+
+  apiData:
+*/

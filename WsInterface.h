@@ -7,7 +7,7 @@
 #include <string>
 using namespace httpsserver;
 
-/* 
+/*
   Websocket message interface suitable for real time communication
   between ESP and remote clients (mainly browsers)
   Any received message will be dispatched to message handlers
@@ -42,8 +42,9 @@ public:
 
   static void registerDefaultServiceRoute();
 
-  void notifyClient(std::string notification);
   static WsInterface *clientInstance(std::string clientKey);
+  static void notifyAll(std::string notification);
+  void notifyClient(std::string notification);
 
   // METHODS
 protected:

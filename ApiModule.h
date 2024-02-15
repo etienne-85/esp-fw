@@ -1,7 +1,9 @@
 #pragma once
 #include <map>
+#include <CommonObjects.h>
 
 /*
+ * API modules reachable through MessageInterface
  * Each inheriting class will be registered as service and must be singleton
  * When api call or request is received, it will be dispatched to matching
  declared service instance
@@ -15,9 +17,16 @@
  which is identified depends on interface type
  * - LORA: deviceId
  * - WS: opened socket (clientKey)
- *
+ * 
+ * Modules examples: Test, Monitor, Benchmark, 
+ * API usescases:
+ - device capabilities: API modules available on device, 
+ - device monitoring: report ESP32 internal state like EventQueue, registered EventListeners
+ - benchmark device: latency by sending multiple requests, 
+ - configure runtime config like frequency of lora notifications, LORA dutycyle
  */
 // class ApiRequestHandler {
+
 class ApiModule {
   static std::map<std::string, ApiModule *> registeredApiModules;
   // static std::map<std::string, ApiModule *> serviceHandlers;
@@ -27,8 +36,8 @@ protected:
   ApiModule(std::string serviceId);
 
 public:
-  static std::string dispatchApiRequest(std::string apiRequestMsg);
+  static std::string dispatchApiCall(ApiCall &apiCall);
   // TO BE IMPLEMENTED IN CHILD CLASS
 
-  virtual std::string onApiCall(std::string rawMsg) = 0;
+  virtual std::string onApiCall(ApiCall &apiCall) = 0;
 };

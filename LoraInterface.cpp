@@ -90,13 +90,17 @@ void LoraInterface::filterMessage(std::string incomingMsg) {
   }
 }
 
-std::string LoraInterface::onMessage(std::string incomingMsg) {
+std::string LoraInterface::onMessage(std::string incoming) {
   // service dispatching
-  std::string serviceOutput = MessageInterface::onMessage(incomingMsg);
-  if (serviceOutput.length() > 0) {
+  std::string outgoing = MessageInterface::onMessage(incoming);
+  // ogStore::dbg("[WsInterface::onMessage] message received from client " +
+  //              clientKey + ": " + incoming);
+  // ApiCall *apiCall = ApiCall::fromMinifiedMsg(incoming);
+  // std::string outgoing = ApiModule::dispatchApiCall(apiCall);
+  if (outgoing.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
     // outgoingMsg);
-    sendText(serviceOutput);
+    sendText(outgoing);
   } else {
     // LogStore::info(
     //     "[LoraInterface::onMessage] empty message => no reply sent");
