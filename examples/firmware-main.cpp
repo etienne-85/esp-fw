@@ -11,10 +11,10 @@
 #include <WsInterface.h>
 // Remote services
 // #include <RemoteFsService.h>
-#include <MessageRepeaterService.h>
+// #include <MessageRepeaterService.h>
 // #include <LoraProxyService.h>
-#include <NotificationService.h>
-#include <RemoteGpioService.h>
+#include <EventMessageNotifications.h>
+// #include <RemoteGpioService.h>
 #include <TestModule.h>
 
 /**
@@ -50,12 +50,12 @@ void setup() {
   LogStore::info("\n*** MESSAGE INTERFACES ***");
   WsInterface::registerDefaultServiceRoute();
   LoraInterface::instance().init();
-  LogStore::info("\n*** MESSAGE HANDLERS ***");
-  GpioRemoteService::instance();
+  LogStore::info("\n*** API MODULES ***");
+  // GpioRemoteService::instance();
   // LoraProxyService::instance();
-  MessageRepeaterService::instance();
+  // MessageRepeaterService::instance();
+  EventMessageNotifications::instance();
   TestModule::instance();
-  NotificationService::instance();
   LogStore::info("\n*** SERVICES ***");
   WebServer::instance().start();
   // StaticServer staticServer;

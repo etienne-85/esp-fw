@@ -8,33 +8,34 @@
 //                                               {"MSGNOT", MSGNOT},
 //                                               {"MSGFWD", MSGFWD},
 //                                               {"MSGREP", MSGREP}};
-std::map<EventType, std::string> EventTypeMap{{LOG, "LOG"}, {PIN, "PIN"}};
+std::map<EventType, std::string> EventTypeMap{
+    {LOG, "LOG"}, {PIN, "PIN"}, {EXT, "EXT"}};
 
 /*
  * EventTrigger
  */
 
-std::queue<Event> EventQueue::events;
+std::queue<Event> EventQueue::local;
 
 void EventQueue::pushEvent(Event evt, bool bypassEvtQueue) {
   // will directly call evtDispatch synchronously
   if (bypassEvtQueue) {
     EventHandler::dispatchEvt(evt);
   } else {
-    EventQueue::events.push(evt);
+    EventQueue::local.push(evt);
   }
 };
 
 void EventQueue::watchEvents() {
-  if (EventQueue::events.size() > 0) {
-    Event evt = EventQueue::events.front();
+  if (EventQueue::local.size() > 0) {
+    Event evt = EventQueue::local.front();
     bool dispatched = EventHandler::dispatchEvt(evt);
     if (!dispatched) {
       LogStore::dbg("[EventQueue::watchEvents] undispatched event " + evt.type +
                     " => put in "
                     "waiting queue ");
     }
-    EventQueue::events.pop();
+    EventQueue::local.pop();
   }
 };
 
@@ -54,15 +55,15 @@ bool EventHandler::dispatchEvt(Event evt) {
   //   LogStore::dbg("[EventHandler::dispatchEvt] " + eventData, true);
   bool dispatched = false;
   for (EventHandler *instance : EventHandler::subscribers) {
-    if (evt.type == instance->evtType) {
+    if (instance->evtType == "*" || evt.type == instance->evtType) {
+      instance->onEvent(evt);
       dispatched = true;
-      instance->onEvent(evt.data);
     }
   }
   return dispatched;
 };
 
-void EventHandler::onEvent(std::string eventData) {
+void EventHandler::onEvent(Event evt) {
   LogStore::dbg("[EventHandler::onEvent] ");
 };
 

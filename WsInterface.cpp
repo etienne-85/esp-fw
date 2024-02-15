@@ -8,7 +8,8 @@
 
 WsInterface::WsInterface(std::string clientKey)
     : WebsocketHandler(), clientKey(clientKey) {
-  LogStore::info("[WsInterface] Client " + clientKey + " connected");
+  LogStore::info("[WsInterface::construct] instance created for client " +
+                 clientKey);
 }
 
 // When the websocket is closing, we remove the client from the array
@@ -71,21 +72,31 @@ void WsInterface::registerService(std::string serviceRoute,
 void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
   // Get the input message
   std::ostringstream ss;
-  std::string incomingMsg;
+  std::string incoming;
   ss << inbuf;
-  incomingMsg = ss.str();
-  LogStore::dbg("[WsInterface::onMessage] clientKey: " + clientKey);
-
-  // TODO publish MSG event
-  std::string outgoingMsg = MessageInterface::onMessage(incomingMsg);
-  if (outgoingMsg.length() > 0) {
+  incoming = ss.str();
+  std::string outgoing = MessageInterface::onMessage(incoming);
+  // LogStore::dbg("[WsInterface::onMessage] message received from client " +
+  //               clientKey + ": " + incoming);
+  // ApiCall *apiCall = ApiCall::fromMsg(incoming);
+  // std::string objData("");
+  // std::string objType("");
+  // ApiCall &apiCall = MsgObj::fromMsgObj<ApiCall>(msgObj);
+  // std::string outgoing = ApiModule::dispatchApiCall(apiCall);
+  if (outgoing.length() > 0) {
     // LogStore::info("[RemoteService::onMessage] sending reply: " +
-    // outgoingMsg);
+    // outgoing);
     LogStore::info("[WsInterface::onMessage] REPLYING ");
-    this->send(outgoingMsg, SEND_TYPE_TEXT);
+    this->send(outgoing, SEND_TYPE_TEXT);
   } else {
     // LogStore::info("[WsInterface::onMessage] empty message => no reply
     // sent");
+  }
+}
+
+void WsInterface::notifyAll(std::string notification) {
+  for (auto const &[clientKey, clientInstance] : instances) {
+    clientInstance->send(notification, SEND_TYPE_TEXT);
   }
 }
 
@@ -127,6 +138,11 @@ WebsocketHandler *WsInterface::instanceOnClientConnect() {
   if (WsInterface::instances.size() < MAX_CLIENTS) {
     instance = new WsInterface(clientKey);
     WsInterface::instances.insert({clientKey, instance});
+    // LogStore::info("[WsInterface::instanceOnClientConnect] auto subscribe "
+    //                "client to all event notifications ");
+    // NotificationService::instance().onEventSubscribe("*", clientKey);
+    // notify client of its clientKey
+    // WsInterface::instances[clientKey]->notifyClient(clientKey);
   } else {
     LogStore::info(
         "[WsInterface::instanceOnClientConnect] reject max number of "
