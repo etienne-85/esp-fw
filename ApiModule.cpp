@@ -3,16 +3,15 @@
 #include <LogStore.h>
 #include <System.h>
 
-ApiModule::ApiModule(std::string msgType) {
-  LogStore::info("[ApiModule::constructor] handle for " + msgType +
-                 " message type");
-  ApiModule::registeredApiModules.insert({msgType, this});
+ApiModule::ApiModule(std::string apiModule) {
+  LogStore::info("[ApiModule::constructor] register API module: " + apiModule);
+  ApiModule::registeredApiModules.insert({apiModule, this});
 }
 
 // STATIC DEF
 std::map<std::string, ApiModule *> ApiModule::registeredApiModules;
 
-std::string ApiModule::dispatchApiCall(ApiCall &apiCall) {
+std::string ApiModule::dispatchApiCall(Msg &msg) {
   // TODO
   // std::string msgSrc = type; // interface type (LORA,WS)
   // std::string msgCtx = msgRoot["ctx"];
@@ -25,12 +24,11 @@ std::string ApiModule::dispatchApiCall(ApiCall &apiCall) {
   // bool bypassEvtQueue(msgMode == "sync");
   // EventQueue::pushEvent(event, bypassEvtQueue);
   // find corresponding sub service
-  auto apiModule = ApiModule::registeredApiModules.find(apiCall.apiModule);
+  auto apiModule = ApiModule::registeredApiModules.find(msg.apiModule);
   if (apiModule != ApiModule::registeredApiModules.end()) {
-    LogStore::info(
-        "[ApiModule::dispatchApiCall] API request dispatched to module " +
-        apiCall.apiModule);
-    std::string dataOut = apiModule->second->onApiCall(apiCall);
+    LogStore::dbg("[ApiModule::dispatchApiCall] API call dispatched to " +
+                  msg.apiModule + " module");
+    std::string dataOut = apiModule->second->onApiCall(msg);
     //     // default empty reply
     //     std::string outgoingMsg("");
     //     bool expectedReply = timestamp > 0 || dataOut.length() > 0;
@@ -57,7 +55,7 @@ std::string ApiModule::dispatchApiCall(ApiCall &apiCall) {
     //     return outgoingMsg;
   } else {
     LogStore::info("[ApiModule::dispatchApiCall] unregistered API module: " +
-                   apiCall.apiModule);
+                   msg.apiCall);
   }
   return "";
 }

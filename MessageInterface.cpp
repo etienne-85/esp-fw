@@ -3,6 +3,7 @@
 #include <Events.h>
 #include <LogStore.h>
 #include <MessageInterface.h>
+#include <System.h>
 /*
 * msg = {
     type: 'api',
@@ -30,34 +31,37 @@ msg = {
   data: apiRequest
 }
 */
-std::string MessageInterface::onMessage(std::string incomingMsg) {
-  std::string res("");
-  std::string interfaceType = "<type>"; // LORA or WS
-  LogStore::dbg("[MessageInterface::onMessage] received message on interface " +
-                interfaceType + ": " + incomingMsg);
-  ApiCall apiCall;
-  apiCall.fromMsg(incomingMsg);
+MessageInterface::MessageInterface(MessageInterfaceType interfaceType)
+    : type(interfaceType){};
+
+void MessageInterface::onMessage(std::string &msgContent) {
+  Msg incomingMsg(type);
+  incomingMsg.parseContent(msgContent);
   // LogStore::dbg(
   //     "[MessageInterface::onMessage] apiModule: " + apiCall.apiModule +
   //     ", call: " + apiCall.call + ", data: " + apiCall.data);
-  res = ApiModule::dispatchApiCall(apiCall);
-  // root msg level props
-  // JsonObject req = originalMsg["content"];
-  // std::string apiRequest;
-  // serializeJson(req, apiRequest);
+  if (!filterOutMessage(incomingMsg)) {
+    // send ACK MSG
+    if (incomingMsg.acknowledgeDelivery) {
+      notifyClient("ACK");
+    }
+    std::string outgoingReply = ApiModule::dispatchApiCall(incomingMsg);
+    // optional sync reply
+    if (outgoingReply.length() > 0) {
+      // TODO send result
+    }
+  }
+}
 
-  // if (msgType == "apiCall") {
-  //   // TODO msgContext
-  //   // JsonDocument msgContext;
-  //   // msgContext["clientKey"] = clientKey;
-  //   // msgContext["interfaceType"] = interfaceType;
-  //   // msgRoot["context"] = msgContext;
-  //   // std::string patchedMsg(incomingMsg);
-  //   std::string apiRequest;
-  //   serializeJson(req, apiRequest);
-  //   res = ApiModule::dispatchApiReq(apiRequest);
-  // } else if (msgType == "evtInject") {
-  //   injectEvent(incomingMsg);
-  // }
-  return res;
+bool MessageInterface::filterOutMessage(Msg &incomingMsg) {
+
+  std::string deviceId = System::cfgStore.configContent()["deviceId"];
+  bool rejected =
+      type == MessageInterfaceType::LORA && incomingMsg.clientKey != deviceId;
+  if (rejected) {
+    LogStore::info(
+        "[LoraInterface::filterMessage] reject message addressed to " +
+        incomingMsg.clientKey + " received on device " + deviceId);
+  }
+  return rejected;
 }

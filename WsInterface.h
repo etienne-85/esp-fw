@@ -1,5 +1,6 @@
 #pragma once
 #include <ArduinoJson.h>
+#include <CommonObj.h>
 #include <Events.h>
 #include <MessageInterface.h>
 #include <WebsocketHandler.hpp>

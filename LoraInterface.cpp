@@ -1,5 +1,6 @@
 #include <LogStore.h>
 #include <LoraInterface.h>
+#define API_MODULE "Lora"
 // define the pins used by the transceiver module
 #define ss 10
 #define rst 14
@@ -7,6 +8,8 @@
 #define DELAY 5000
 
 int packetsCount = 0;
+LoraInterface::LoraInterface()
+    : MessageInterface(MessageInterfaceType::LORA), ApiModule(API_MODULE) {}
 
 LoraInterface &LoraInterface::instance() {
   // check if service already exists, otherwise create one
@@ -38,6 +41,16 @@ void LoraInterface::init() {
   LogStore::info("[LoraInterface::init] LORA interface available");
 }
 
+/*
+* callable remotely to adjust SF
+ decrease value from highest to lower values
+*/
+void LoraInterface::autoAdjustSF() {
+  // try sending message at SF value
+  // SUCCESS => retry with lower SF value
+  // FAIL => retry with higher SF, retain successful value +1
+}
+
 void LoraInterface::sendText(std::string outgoingMsg) {
   LogStore::dbg("[LoraInterface::send] Sending packet #" +
                 std::to_string(packetsCount));
@@ -62,50 +75,42 @@ void LoraInterface::listen() {
 
   if (packetSize) {
     packetsCount++;
-    // received a packet
-    LogStore::info("[LoraInterface::listen] RECEIVED packet");
     // read packet
     while (LoRa.available()) {
       incomingMsg = LoRa.readString().c_str();
+      // received a packet
+      LogStore::info("[LoraInterface::listen] RECEIVED packet " + incomingMsg);
       LogStore::dbg(incomingMsg);
     }
-    filterMessage(incomingMsg);
-  }
-}
-
-void LoraInterface::filterMessage(std::string incomingMsg) {
-  JsonDocument root;
-  // convert to a json object
-  DeserializationError error = deserializeJson(root, incomingMsg);
-  // root level props common to all services
-  // std::string sender = root["src"];
-  std::string recipient = root["dst"];
-  std::string deviceId = System::cfgStore.configContent()["deviceId"];
-  if (recipient == deviceId) {
     onMessage(incomingMsg);
-  } else {
-    LogStore::info(
-        "[LoraInterface::filterMessage] reject message addressed to " +
-        recipient + " received on " + deviceId);
   }
 }
 
-std::string LoraInterface::onMessage(std::string incoming) {
-  // service dispatching
-  std::string outgoing = MessageInterface::onMessage(incoming);
-  // ogStore::dbg("[WsInterface::onMessage] message received from client " +
-  //              clientKey + ": " + incoming);
-  // ApiCall *apiCall = ApiCall::fromMinifiedMsg(incoming);
-  // std::string outgoing = ApiModule::dispatchApiCall(apiCall);
-  if (outgoing.length() > 0) {
-    // LogStore::info("[RemoteService::onMessage] sending reply: " +
-    // outgoingMsg);
-    sendText(outgoing);
-  } else {
-    // LogStore::info(
-    //     "[LoraInterface::onMessage] empty message => no reply sent");
+std::string LoraInterface::onApiCall(Msg &msg) {
+  LogStore::info("[LoraInterface::onApiCall] " + msg.apiCall);
+
+  // std::string apiCommand = apiInput["cmd"];
+  if (msg.apiCall == "setup") {
+    setup(msg.objContent);
   }
   return "";
+}
+
+void LoraInterface::setup(std::string objContent) {
+  JsonDocument settings;
+  // convert to a json object
+  DeserializationError error = deserializeJson(settings, objContent);
+  if (settings["SF"]) {
+    int sf = settings["SF"];
+    if (sf >= 7 && sf <= 12) {
+      LogStore::info("[LoraInterface::setup] set spreading factor SF to " +
+                     std::to_string(sf));
+      LoRa.setSpreadingFactor(sf);
+    } else {
+      LogStore::info("[LoraInterface::setup] Invalid SF value: " +
+                     std::to_string(sf));
+    }
+  }
 }
 
 // void LoraInterface::configure(int reg, int val) {
@@ -118,3 +123,4 @@ std::string LoraInterface::onMessage(std::string incoming) {
 #undef rst
 #undef dio0
 #undef DELAY
+#undef API_MODULE

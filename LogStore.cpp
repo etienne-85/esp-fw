@@ -8,17 +8,17 @@ std::map<int, LogData> LogStore::logBuffer;
 
 void LogStore::add(std::string logMsg, int logLevel, bool bypassEvtQueue) {
   int logId = LogStore::logBuffer.size();
+  int elapsedTime = millis();
   LogData logData;
   logData.level = logLevel;
   logData.log = logMsg;
-  logData.timestamp = System::time.elapsedTimeEstimate;
+  logData.timestamp = elapsedTime; // System::time.elapsedTimeEstimate;
   LogStore::logBuffer.insert({logId, logData});
   // each time new log is added notify all log consumers through event
   if (!bypassEvtQueue) {
     // LogConsumer::notifyAll(logMsg);
-    std::cout << logMsg << std::endl;
+    std::cout << "[" << elapsedTime << "] " << logMsg << std::endl;
     std::string evtType = EventTypeMap[EventType::LOG];
-    std::string evtData = logMsg;
     EventContext evtCtx; // use default
     // customise any required
     // evtCtx.origin = EventOrigin.LOCAL;
@@ -26,7 +26,7 @@ void LogStore::add(std::string logMsg, int logLevel, bool bypassEvtQueue) {
     // evtCtx.priority = 0;
     Event evt;
     evt.type = evtType;
-    evt.data = evtData;
+    evt.content = logMsg;
     evt.context = evtCtx;
     EventQueue::pushEvent(evt);
   }
