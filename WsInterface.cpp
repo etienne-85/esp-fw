@@ -7,7 +7,8 @@
  ****************************/
 
 WsInterface::WsInterface(std::string clientKey)
-    : WebsocketHandler(), clientKey(clientKey) {
+    : WebsocketHandler(), MessageInterface(MessageInterfaceType::WS),
+      clientKey(clientKey) {
   LogStore::info("[WsInterface::construct] instance created for client " +
                  clientKey);
 }
@@ -72,26 +73,11 @@ void WsInterface::registerService(std::string serviceRoute,
 void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
   // Get the input message
   std::ostringstream ss;
-  std::string incoming;
+  std::string msgContent;
   ss << inbuf;
-  incoming = ss.str();
-  std::string outgoing = MessageInterface::onMessage(incoming);
-  // LogStore::dbg("[WsInterface::onMessage] message received from client " +
-  //               clientKey + ": " + incoming);
-  // ApiCall *apiCall = ApiCall::fromMsg(incoming);
-  // std::string objData("");
-  // std::string objType("");
-  // ApiCall &apiCall = MsgObj::fromMsgObj<ApiCall>(msgObj);
-  // std::string outgoing = ApiModule::dispatchApiCall(apiCall);
-  if (outgoing.length() > 0) {
-    // LogStore::info("[RemoteService::onMessage] sending reply: " +
-    // outgoing);
-    LogStore::info("[WsInterface::onMessage] REPLYING ");
-    this->send(outgoing, SEND_TYPE_TEXT);
-  } else {
-    // LogStore::info("[WsInterface::onMessage] empty message => no reply
-    // sent");
-  }
+  msgContent = ss.str();
+  LogStore::info("[WsInterface::onMessage] received message " + msgContent);
+  MessageInterface::onMessage(msgContent);
 }
 
 void WsInterface::notifyAll(std::string notification) {

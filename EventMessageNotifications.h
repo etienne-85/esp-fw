@@ -32,7 +32,7 @@ NOTIFICATION mode usecase examples:
 #include <string>
 // CPP
 #define API_MODULE "MsgNotif"
-#include <CommonObjects.h>
+#include <CommonObj.h>
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
 #include <MessageInterface.h>
@@ -84,7 +84,7 @@ private:
 public:
   // catching events from queue, sending notification message
   void onEvent(Event evt);
-  std::string onApiCall(ApiCall &apiCall);
+  std::string onApiCall(Msg &msg);
   // receiving message notification, pushing event in queue
   void onForeignEvent(std::string evtContent);
 
@@ -97,10 +97,7 @@ public:
 };
 
 EventMessageNotifications::EventMessageNotifications()
-    : ApiModule(API_MODULE), EventHandler("*") {
-  LogStore::info("[EventMessageNotifications] Event handler + API service: " +
-                 std::string(API_MODULE));
-}
+    : ApiModule(API_MODULE), EventHandler("*") {}
 
 // STATIC
 EventMessageNotifications &EventMessageNotifications::instance() {
@@ -113,26 +110,22 @@ void EventMessageNotifications::onEvent(Event evt) {
   // LogStore::dbg("[EventMessageNotifications::onEvent] " + clientKey +
   //                   " received event " + eventData,
   //               true);
-  LogStore::dbg("[EventMessageNotifications::onEvent] ");
   std::string deviceId = System::cfgStore.configContent()["deviceId"];
   std::string eventSrc =
       evt.context.source == "local" ? deviceId : evt.context.source;
   ForeignEvent fEvt(evt, deviceId);
-  std::string evtContent = fEvt.toObjContent();
-  LogStore::dbg("[EventMessageNotifications::onEvent] evtContent: " +
-                evtContent);
-  ApiCall apiCall;
-  apiCall.apiModule = API_MODULE;
-  apiCall.call = "onForeignEvent";
-  apiCall.data = evtContent;
-  std::string apiCallMsg = apiCall.toMsg();
+  Msg outgoingMsg(MessageInterfaceType::WS);
+  outgoingMsg.apiModule = API_MODULE;
+  outgoingMsg.apiCall = "onForeignEvent";
+  outgoingMsg.objContent = fEvt.toObjContent();
+  std::string outgoingMsgContent = outgoingMsg.serialize();
   // notify client
   // WsInterface::clientInstance(clientKey)->notifyClient(eventNotifMsg);
-  WsInterface::notifyAll(apiCallMsg);
+  WsInterface::notifyAll(outgoingMsgContent);
 };
 
 // void EventMessageNotifications::extractMsg(std::string rawMsg) {
-std::string EventMessageNotifications::onApiCall(ApiCall &apiCall) {
+std::string EventMessageNotifications::onApiCall(Msg &msg) {
   LogStore::info("[EventMessageNotifications::onApiCall] ");
 
   // module, submodule, command
@@ -144,8 +137,8 @@ std::string EventMessageNotifications::onApiCall(ApiCall &apiCall) {
   //   std::string clientKey = apiInput["clientKey"];
   //   return onEventSubscribe(evtType, clientKey);
   // } else
-  if (apiCall.call == "onForeignEvent") {
-    onForeignEvent(apiCall.data);
+  if (msg.apiCall == "onForeignEvent") {
+    onForeignEvent(msg.objContent);
   }
   return ("");
 }

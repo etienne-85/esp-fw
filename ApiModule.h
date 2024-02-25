@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include <CommonObjects.h>
+#include <CommonObj.h>
 
 /*
  * API modules reachable through MessageInterface
@@ -36,8 +36,8 @@ protected:
   ApiModule(std::string serviceId);
 
 public:
-  static std::string dispatchApiCall(ApiCall &apiCall);
+  static std::string dispatchApiCall(Msg &msg);
   // TO BE IMPLEMENTED IN CHILD CLASS
 
-  virtual std::string onApiCall(ApiCall &apiCall) = 0;
+  virtual std::string onApiCall(Msg &msg) = 0;
 };

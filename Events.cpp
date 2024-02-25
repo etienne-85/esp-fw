@@ -18,8 +18,9 @@ std::map<EventType, std::string> EventTypeMap{
 std::queue<Event> EventQueue::local;
 
 void EventQueue::pushEvent(Event evt, bool bypassEvtQueue) {
-  // will directly call evtDispatch synchronously
+  // evt.context.timestamp = millis();
   if (bypassEvtQueue) {
+    // directly call evtDispatch synchronously
     EventHandler::dispatchEvt(evt);
   } else {
     EventQueue::local.push(evt);
@@ -52,7 +53,6 @@ EventHandler::EventHandler(std::string evtType) : evtType(evtType) {
 };
 
 bool EventHandler::dispatchEvt(Event evt) {
-  //   LogStore::dbg("[EventHandler::dispatchEvt] " + eventData, true);
   bool dispatched = false;
   for (EventHandler *instance : EventHandler::subscribers) {
     if (instance->evtType == "*" || evt.type == instance->evtType) {
