@@ -1,42 +1,58 @@
 #include <ArduinoJson.h>
 #include <CommonObj.h>
 #include <LogStore.h>
+#include <System.h>
 #include <iostream>
 #include <utils.h>
+
 /*
 ###############
 ##### MSG #####
 ###############
 */
 
-Msg::Msg(MessageInterfaceType msgInterfaceType) {
-  interface = msgInterfaceType;
+Msg::Msg(MessageInterfaceType msgInterfaceType): interface(msgInterfaceType) {
+  // by default device local elapsed time
+  // int deviceLocalTime = millis();
+  // msgId = std::to_string(deviceLocalTime);
 }
 
 void Msg::parseContent(std::string msgContent) {
   JsonDocument msgData;
   // convert to a json object
   DeserializationError error = deserializeJson(msgData, msgContent);
-  std::string sMsgId = msgData["key"];
-  std::string sClientKey = msgData["cli"];
-  bool ackDelivery = msgData["ack"];
-  std::string apiModuleCall = msgData["cmd"]; // format module:call
-  std::string sObjContent = msgData["obj"];
+  std::string id = msgData["id"];
+  std::string src = msgData["src"];
+  std::string dst = msgData["dst"];
+  bool ack = msgData["ack"];
+  std::string apiModuleCall = msgData["cmd"]; // format apiModule:call
+  std::string obj = msgData["obj"];
   std::vector<std::string> items = splitFromCharDelim(apiModuleCall, ':');
   apiModule = items.at(0);
   apiCall = items.at(1);
-  objContent = sObjContent;
+  objContent = obj;
   // content = msgContent;
-  msgId = sMsgId;
-  clientKey = sClientKey;
-  acknowledgeDelivery = ackDelivery;
+  msgId = id;
+  sender = src;
+  target = dst;
+  acknowledgeDelivery = ack;
   // interface = interfaceSrc;
 }
 
 std::string Msg::serialize() {
   // convert object to JSON
   JsonDocument msgData;
-  msgData["key"] = msgId;
+  if (msgId.length() > 0) {
+    msgData["id"] = msgId;
+  }
+  if (target.length() > 0) {
+    std::string deviceId = System::cfgStore.configContent()["deviceId"];
+    msgData["src"] = deviceId;
+    msgData["dst"] = target;
+  }
+  if (acknowledgeDelivery) {
+    msgData["ack"] = true;
+  }
   msgData["cmd"] = apiModule + ":" + apiCall;
   msgData["obj"] = objContent;
   std::string msgContent("");

@@ -26,8 +26,7 @@ std::string ApiModule::dispatchApiCall(Msg &msg) {
   // find corresponding sub service
   auto apiModule = ApiModule::registeredApiModules.find(msg.apiModule);
   if (apiModule != ApiModule::registeredApiModules.end()) {
-    LogStore::dbg("[ApiModule::dispatchApiCall] API call dispatched to " +
-                  msg.apiModule + " module");
+    LogStore::dbg("[ApiModule::dispatchApiCall] API module: " + msg.apiModule);
     std::string dataOut = apiModule->second->onApiCall(msg);
     //     // default empty reply
     //     std::string outgoingMsg("");

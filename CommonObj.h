@@ -14,16 +14,16 @@ Typical objects to be carried over messages are:
 
 class Msg {
 public:
-  std::string msgId; // device's local ms
+  std::string msgId = std::to_string(millis()); // device's local ms
   std::string apiModule;
   std::string apiCall;
   std::string objContent; // optional object content to be processed by API
-  std::string
-      clientKey; // source or destination client depending on message direction
-  std::string interface; // source interface of incoming msg or target interface
-                         // for outgoing msg
-  bool acknowledgeDelivery; // insure message delivery
-  int retryCount;           // number of attempts sending message
+  std::string sender;
+  std::string target;
+  MessageInterfaceType interface; // source interface of incoming msg or target
+                                  // interface for outgoing msg
+  bool acknowledgeDelivery = false; // insure message delivery
+  int retryCount;                   // number of attempts sending message
   Msg(MessageInterfaceType msgInterfaceType);
   void parseContent(std::string msgContent);
   std::string serialize();

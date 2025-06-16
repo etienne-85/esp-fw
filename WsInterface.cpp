@@ -76,7 +76,7 @@ void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
   std::string msgContent;
   ss << inbuf;
   msgContent = ss.str();
-  LogStore::info("[WsInterface::onMessage] received message " + msgContent);
+  LogStore::dbg("[WsInterface::onMessage] received message " + msgContent);
   MessageInterface::onMessage(msgContent);
 }
 

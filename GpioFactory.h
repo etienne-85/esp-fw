@@ -5,7 +5,7 @@
 // #include <miscUtils.h>
 
 /*
- *  Static class to manage GPIO pins: find, alloc, free
+ *  Static class to manage GPIO pins: find, assign, free
  */
 
 class GpioFactory {
@@ -13,7 +13,7 @@ public:
   static std::map<int, GpioPin *> pins;
   // static Gpio *getPin(int pin);
   static GpioPin *pinFind(int pin);
-  static GpioPin *pinAlloc(int pin, std::string pinData);
+  static GpioPin *pinAssign(int pin, std::string pinData);
   static void pinFree(int pin);
   static int pinAuto(int pin, std::string pinData);
   static void resetPinsDefaults();
@@ -39,17 +39,17 @@ GpioPin *GpioFactory::pinFind(int pin) {
  * - existing => skip
  * - missing => calling specific pin constructor
  */
-GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
-  // std::cout << "[GpioFactory::pinAlloc] raw pin data: "<< pinData <<
+GpioPin *GpioFactory::pinAssign(int pin, std::string pinData) {
+  // std::cout << "[GpioFactory::pinAssign] raw pin data: "<< pinData <<
   // std::endl;
-  // std::cout << "[GpioFactory::pinAlloc] pin: "<< pin << std::endl;
+  // std::cout << "[GpioFactory::pinAssign] pin: "<< pin << std::endl;
   GpioPin *pinInstance = GpioFactory::pinFind(pin);
   JsonDocument pinRoot;
   // unpack json pin config
   deserializeJson(pinRoot, pinData);
 
   if (pinInstance == NULL) {
-    // std::cout << "[GpioFactory::pinAlloc] create instance for pin "<< pin <<
+    // std::cout << "[GpioFactory::pinAssign] create instance for pin "<< pin <<
     // std::endl;
     pinInstance =
         pinRoot["type"] == 1
@@ -57,7 +57,7 @@ GpioPin *GpioFactory::pinAlloc(int pin, std::string pinData) {
                                          pinRoot["res"], pinRoot["default"]))
             : new GpioPin(pin, pinRoot["default"]);
     GpioFactory::pins.insert({pin, pinInstance});
-    std::cout << "[GpioFactory::pinAlloc] Total registered gpios: "
+    std::cout << "[GpioFactory::pinAssign] Total registered gpios: "
               << GpioFactory::pins.size() << std::endl;
   } else {
     std::cout << "pin #" << pin << " already allocated " << std::endl;
@@ -85,7 +85,7 @@ int GpioFactory::pinAuto(int pin, std::string sPinData) {
   if (pinInstance == NULL) {
     // tries to create pin instance
     // if fail log error: missing init parameters
-    pinInstance = GpioFactory::pinAlloc(pin, sPinData);
+    pinInstance = GpioFactory::pinAssign(pin, sPinData);
   }
 
   if (pinInstance != NULL) {
