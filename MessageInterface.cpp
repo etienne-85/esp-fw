@@ -40,10 +40,10 @@ void MessageInterface::onMessage(std::string &msgContent) {
   // LogStore::dbg(
   //     "[MessageInterface::onMessage] apiModule: " + apiCall.apiModule +
   //     ", call: " + apiCall.call + ", data: " + apiCall.data);
-  if (!filterOutMessage(incomingMsg)) {
+  if (true || !filterOutMessage(incomingMsg)) {
     // send ACK MSG
     if (incomingMsg.acknowledgeDelivery) {
-      notifyClient("ACK");
+      MessageInterface::sendAck(msgContent);
     }
     std::string outgoingReply = ApiModule::dispatchApiCall(incomingMsg);
     // optional sync reply
@@ -57,11 +57,24 @@ bool MessageInterface::filterOutMessage(Msg &incomingMsg) {
 
   std::string deviceId = System::cfgStore.configContent()["deviceId"];
   bool rejected =
-      type == MessageInterfaceType::LORA && incomingMsg.clientKey != deviceId;
+      type == MessageInterfaceType::LORA && incomingMsg.target != deviceId;
   if (rejected) {
-    LogStore::info(
-        "[LoraInterface::filterMessage] reject message addressed to " +
-        incomingMsg.clientKey + " received on device " + deviceId);
+    LogStore::info("[LoraInterface::filterMessage] reject message from " +
+                   incomingMsg.sender + " addressed to " + incomingMsg.target +
+                   " received on " + deviceId);
   }
   return rejected;
+}
+
+void MessageInterface::sendAck(std::string &msgContent) {
+
+  Msg ackMsg(type);
+  ackMsg.parseContent(msgContent);
+  ackMsg.target = ackMsg.sender; // swap sender and target
+  ackMsg.apiCall = "msgACK";
+  ackMsg.objContent = "";
+  ackMsg.acknowledgeDelivery = false;
+  std::string ackMsgContent(ackMsg.serialize());
+  LogStore::info("[MessageInterface::sendAck] #" + ackMsg.msgId);
+  notifyClient(ackMsgContent);
 }

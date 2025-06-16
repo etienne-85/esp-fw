@@ -9,7 +9,7 @@
 //                                               {"MSGFWD", MSGFWD},
 //                                               {"MSGREP", MSGREP}};
 std::map<EventType, std::string> EventTypeMap{
-    {LOG, "LOG"}, {PIN, "PIN"}, {EXT, "EXT"}};
+    {LOG, "LOG"}, {PIN_TRIGGER, "PIN_TRIGGER"}, {EXT, "EXT"}};
 
 /*
  * EventTrigger

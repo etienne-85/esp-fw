@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <GpioPin.h>
 #include <LogStore.h>
+#include <iostream>
+#include <Notifications.h>
 
 using namespace std;
 /**
@@ -96,4 +98,78 @@ std::string GpioPwmPin::dump() {
   // std::string out("");
   // // serializeJson(doc, out);
   // return out;
+}
+
+/*
+ * TriggerPin
+ */
+
+template <int pinId> void onPinStateChange(void) {
+  std::string evtType = EventTypeMap[EventType::PIN_TRIGGER];
+  std::string evtData =
+      "[TriggerPin::onPinStateChange] " + std::to_string(pinId);
+  // EventContext evtCtx;  // use default, customise any required
+  // evtCtx.origin = EventOrigin.LOCAL;
+  // evtCtx.timestamp = 0;
+  // evtCtx.priority = 0;
+  Event evt;
+  evt.type = evtType;
+  evt.content = evtData;
+  // evt.context = evtCtx;
+  EventQueue::pushEvent(evt);
+}
+
+// Create a map of onPinStateChange callbacks
+// std::map<int, int> PinInterruptCallbackMap{
+//     {0, onPinStateChange<0>}, {1, onPinStateChange<1>},
+//     {2, onPinStateChange<2>}, {3, onPinStateChange<3>},
+//     {4, onPinStateChange<4>}, {5, onPinStateChange<5>}
+//     };
+// Create a map of three (string, int) pairs
+// std::map<int, void(*) void> m{{1, &onPinStateChange<1>},
+//                               {2, &onPinStateChange<2>},
+//                               {3, &onPinStateChange<3>}};
+
+void (*pinInterruptCallbackMap[48])(void) = {
+    &onPinStateChange<1>,  &onPinStateChange<2>,  &onPinStateChange<3>,
+    &onPinStateChange<4>,  &onPinStateChange<5>,  &onPinStateChange<6>,
+    &onPinStateChange<7>,  &onPinStateChange<8>,  &onPinStateChange<9>,
+    &onPinStateChange<10>, &onPinStateChange<11>, &onPinStateChange<12>,
+    &onPinStateChange<13>, &onPinStateChange<14>, &onPinStateChange<15>,
+    &onPinStateChange<16>, &onPinStateChange<17>, &onPinStateChange<18>,
+    &onPinStateChange<19>, &onPinStateChange<20>, &onPinStateChange<21>,
+    &onPinStateChange<22>, &onPinStateChange<23>, &onPinStateChange<24>,
+    &onPinStateChange<25>, &onPinStateChange<26>, &onPinStateChange<27>,
+    &onPinStateChange<28>, &onPinStateChange<29>, &onPinStateChange<30>,
+    &onPinStateChange<31>, &onPinStateChange<32>, &onPinStateChange<33>,
+    &onPinStateChange<34>, &onPinStateChange<35>, &onPinStateChange<36>,
+    &onPinStateChange<37>, &onPinStateChange<38>, &onPinStateChange<39>,
+    &onPinStateChange<40>, &onPinStateChange<41>, &onPinStateChange<42>,
+    &onPinStateChange<43>, &onPinStateChange<44>, &onPinStateChange<45>,
+    &onPinStateChange<46>, &onPinStateChange<47>, &onPinStateChange<48>};
+
+TriggerPin::TriggerPin(int pinNb, bool defaultLow)
+    : GpioPin(pinNb, defaultLow ? LOW : HIGH) {
+  LogStore::info("[TriggerPin#" + std::to_string(pinNb) + "::assign] ");
+  /// PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(pinNb, INPUT_PULLDOWN);
+  // Set motionSensor pin as interrupt, assign interrupt function and set RISING
+  // mode
+  attachInterrupt(digitalPinToInterrupt(pinNb),
+                  pinInterruptCallbackMap[pinNb - 1], RISING);
+}
+
+/*
+ * Digital output pin
+ */
+
+DigitalOutputPin::DigitalOutputPin(int pinNb, bool defaultPinState)
+    : GpioPin(pinNb, defaultPinState ? HIGH : LOW) {
+  LogStore::info("[DigitalOutputPin#" + std::to_string(pinNb) + "::assign] ");
+  // set the digital pin as output:
+  pinMode(pinNb, OUTPUT);
+}
+
+void DigitalOutputPin::write(bool pinState) {
+  digitalWrite(pin, pinState ? HIGH : LOW);
 }

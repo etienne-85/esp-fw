@@ -15,7 +15,14 @@
 // #include <LoraProxyService.h>
 #include <EventMessageNotifications.h>
 // #include <RemoteGpioService.h>
+#include <AlarmSystem.h>
+#include <Notifications.h>
 #include <TestModule.h>
+#define PIR_PIN 15
+#define BUZZER_PIN 16
+#define BTN_PIN 17
+
+RTC_DATA_ATTR int bootCount = 0;
 
 /**
  * setup
@@ -31,7 +38,7 @@ void setup() {
   Serial.begin(115200);
   LogStore::info("**********************************");
   LogStore::info("*****     ESP32 Firmware     *****");
-  LogStore::info("*****       BUILD: MN        *****");
+  LogStore::info("*****       BUILD: OP        *****");
   LogStore::info("**********************************");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -40,6 +47,8 @@ void setup() {
   std::string deviceId = System::cfgStore.configContent()["deviceId"];
   LogStore::info("DeviceID: " + deviceId);
   LogStore::info("");
+  SndNotif::instance(BUZZER_PIN).bips(1, 10);
+  // BuzAlert::instance(BUZZER_PIN);
   // LogStore::info("*** Services ***");
   // TestLogConsumer::instance();
   // SerialLogConsumer::instance(); // only used to register as LogConsumer
@@ -56,12 +65,16 @@ void setup() {
   // MessageRepeaterService::instance();
   EventMessageNotifications::instance();
   TestModule::instance();
+  TriggerPin pinObs(BTN_PIN);
+  // AlarmSystem::instance();
+  AlarmSystem *alarmSystem = new AlarmSystem(PIR_PIN, BUZZER_PIN);
   LogStore::info("\n*** SERVICES ***");
   WebServer::instance().start();
   // StaticServer staticServer;
   // staticServer.init();
   OTAServiceWrapper otaService;
   otaService.init();
+  std::cout << std::hex << 128;
   LogStore::info("\n*** READY ***\n");
 }
 

@@ -90,7 +90,7 @@ instancing RemoteEventListener
 //   std::string data;
 // } Event;
 
-enum EventType { LOG, PIN, EXT };
+enum EventType { LOG, PIN_TRIGGER, EXT };
 extern std::map<EventType, std::string> EventTypeMap;
 
 class EventQueue {

@@ -33,6 +33,7 @@ protected:
   MessageInterface(MessageInterfaceType interfaceType);
   void onMessage(std::string &msgContent);
   bool filterOutMessage(Msg &incomingMsg);
+  void sendAck(std::string &msgContent);
 
 public:
   virtual void notifyClient(std::string msg) = 0;

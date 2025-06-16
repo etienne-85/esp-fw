@@ -52,20 +52,16 @@ void LoraInterface::autoAdjustSF() {
 }
 
 void LoraInterface::sendText(std::string outgoingMsg) {
-  LogStore::dbg("[LoraInterface::send] Sending packet #" +
-                std::to_string(packetsCount));
-
+  LogStore::info("[LoraInterface::send] SENT packet");
+  LogStore::dbg(outgoingMsg);
   // Send LoRa packet to recipient
   LoRa.beginPacket();
   LoRa.print(outgoingMsg.c_str());
   LoRa.endPacket();
-  LogStore::info("[LoraInterface::send] SENT packet ");
-  LogStore::dbg(outgoingMsg);
 }
 
-void LoraInterface::notifyClient(std::string notif) {
-  std::string msg("");
-  sendText(msg);
+void LoraInterface::notifyClient(std::string msgContent) {
+  sendText(msgContent);
 }
 
 void LoraInterface::listen() {
@@ -79,7 +75,7 @@ void LoraInterface::listen() {
     while (LoRa.available()) {
       incomingMsg = LoRa.readString().c_str();
       // received a packet
-      LogStore::info("[LoraInterface::listen] RECEIVED packet " + incomingMsg);
+      LogStore::info("[LoraInterface::listen] RECEIVED packet");
       LogStore::dbg(incomingMsg);
     }
     onMessage(incomingMsg);
