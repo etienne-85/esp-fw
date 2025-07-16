@@ -1,41 +1,41 @@
 # esp32-remote-control
-`esp32-remote-control`, `esp32-controls-ota`, `esp32-gpio-ota`, `esp32-ws-controls`, `esp32-remote-gpio`, `esp32-full-remote`, `esp32-ws-rc-gpio`, `esp32-universal-controls`, `esp32-gpio-over-ws`
-Gpio over websockets project is an ESP32 firmware aiming to access and control GPIO pins remotely through websockets.
-It aims to be as generic as possible by externalizing hardware drivers implementation and significantly reduce device's firmware updates.
+Keywords: `esp32-remote-control`, `esp32-remote-gpio`, `esp32-remote-first`, `esp32-gpio-over-ws`,
+`esp-IO`, `esp-arch`
+
+`esp-fw` is an ESP32 firmware exposing low level feat remotely.
+
+Altough `esp32-fw` firmware can work standalone, it is specifically designed to work
+with `esp32-app` companion 
+
+**Strength**
+
+- `HTTPS` server allowing use of `WSS` (secured web-sockets)
+- `WSS`  (besides real time communication ) allows use of externaly web hosted web-app `PWA` (progressive web application)
+- `PWA` hosted separately allows updating UI and logic without changing device's firmware 
+
+## Concept
+**Remote first approach**
+
+Device is primarily controlled by client which can access and control GPIO pins remotely
+This allows hardware drivers externalization so firmware focuses purely on low-level generic actions, while client handles projects' specific logic and drivers implementation.
+
+Benefits:
+- genericity: reduces need for frequent firmware rebuild
+- confort: delegating implementation of project's specific logic and drivers on client side using more friendly scripting languages
+
+**WYSIWYG**
+ what you do/see on webapp reflects what happens on device.
+
+## Features
+- **GPIO-over-ws** provide real time remote access and control of GPIOs over websockets.
+- **Network**  real-time (`WS`) and long range communications (`LORA`)
 
 
-## Design and motivations
-It is designed to:
-- heavily relies upon websockets to provide instant communication with device
-- to allow web app hosted separately to communicate with device by providing web secured connection
-- modular architecture making easy implementation of new services 
 
-
-What? 
-allow controlling pins remotely
-
-Why?
-- universal firmware reusable across projects: avoid building specific firmare version each time new hardware support is required 
-- move all project's logic to high level language like javascript
-
-How?
- Drivers implemented outside device's firmware
-
-Requirement:
-- GPIO remote control capabilities
-    - requires websockets
-    - requires webservice
-    - requires network connection
 
 Extra requirements  : 
-- network settings load from external json configuration
-    - requires Filesystem access
+- load settings from external configuration file => requires `FS` (filesystem)
 - OTA firmware updater
-
-## Limitations
-
-- if you need device to work offline or perform independant tasks
-- 
 
 
 Built-in support for:
@@ -43,14 +43,8 @@ Built-in support for:
 - Filesystem
 - wifi (both AP and STA mode)
 - OTA firmware deployment 
-- web-app hosting through static web server 
 - realtime communications through websockets
 - GPIO over websockets: remotely control GPIOs => support new hardware without changing any firmware code
-
-Designed for
-- minimizing firmware coding.
-- up and running ESP32 dev workspace out of the box
-- modular architecture to easily extend firmware's core features 
 
 ## Usage
 
@@ -90,32 +84,139 @@ Note that serial flashing won't be required anymore to update the board as `OTA 
 
 ## Advanced tips
 
-### Alternative serial flashing
+### Recovery flash using `esptool-js` browser app
+Bootloader bin
+- location: `.pio/build/esp32s3/bootloader.bin`
+- flash address: `0x0`
 
-Particularly convenient if firmware is developed on remote server which isn't connected to esp32 device directly.
+Partition bin
+- location: `.pio/build/esp32s3/partitions.bin`
+- flash address: `0x8000`
 
-In that case built files can be transferred from dev server to a local machine having access to esp32 and uploaded using chrome browser serial capabilities: 
+Boot bin
+- location: `.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin`
+- flash address: `0xe000`
 
 Firmware bin
-- location: `.pio/build/esp32-latest/firmware.bin`
+- location: `.pio/build/esp32s3/firmware.bin`
 - flash address: `0x10000`
 
 FS image:
-- location: `.pio/build/esp32-latest/`
-- flash address: `0x`
+- location: `.pio/build/esp32s3/littlefs.bin`
+- flash address: `0x290000`
 
-### Architecture
+##  Design & architecture
+ESP device is considered as mostly used to
+- react to events (GPIO, ...)
+- talk with external source
+### Interfaces
+Interfaces can be seen as doors to interact with
+- outside world through `GPIO interface` 
+- remote clients through `MSG interface`
 
-Firmware inner feats:
-- `JSON` support
-- `LittleFS` as internal FS
+```
++---------------+
+|     ESP       |
+|               |
+|G             G|
+|P --> EVT <-- P|
+|I             I|
+|O             O|
+|               |
+|---------------|
+| MSG INTERFACE |
+|   WS  |  LORA |  <--->  MSG
++---------------+
+```
 
-The firmware architecture is made of different modules and services.
-A module inherits the `FirmwareModule` class and can overrides `setup`, `loop` methods to provide its own implementation.
-In a similar way, a service provides a custom implementation of another service such as `WebSocketService`.
+This introduces 2 types of entities: MSG and EVT 
+### Messages
+ESP device exchange message through `LinkInterfaces` with remote clients supporting
+- WS client like browsers
+- LORA clients such as other ESP devices
 
-On top of core modules, firmware can be easily extended through custom modules to provide additional features (such as specific sensor support, ...).
-To get included in the main update loop, a custom module inherits the `FirmwareModule` class.
-As C++ allows multiple inheritance, it can also inherit a service to make use of it.
+Received message will be dispatched to specific `APIService` to perform action based on input data, and optionaly sends reply to client.
 
-For instance a module requiring acceess to websockets, will inherit both `FirmwareModule` and `WebSocketService` which will forward received message to process them.
+```
+                   +---------------+
+OUTGOING MSG  <--  |               | <---- OUT -------- (optional)
+                   | MSG INTERFACE |                  |
+INCOMING MSG  -->  |   WS  |  LORA | ---- IN ----     |
+                   |               |            |     |
+                   +---------------+            v     |
+                                            +-------------+
+                                            | API SERVICE |
+                                            +-------------+
+```
+API service examples :
+- GPIO interface: called remotely to perform actions on pins
+- FS: for filesystem operation
+### Events
+Events are triggered and handled from inside device through `EventHandler`.
+Depending on event types, EventHandlers will catch event.
+example: `PIN` event is triggered by `GPIOInterface` when pin state changes. 
+It can be catched then by EventHandler to perform an action.
+
+
+```
+
++----------------+                +---------+
+| GPIO INTERFACE | -- pin evt --> |         |
++----------------+                |         |              +-------------+
+                                  |  EVENT  | --- evt -->  | EVT HANDLER |
+                                  |  QUEUE  |              +-------------+
++--------------+                  |         |
+|     LOGS     |  --- log evt --> |         |
++--------------+                  +---------+
+```
+
+
+
+DEPRECATED:
+
+By default MsgEvt are caught by MessageInEventHandler which will dispatch to corresponding 
+MessageHandler depending on MsgType. 
+
+Any EventTrigger, willing to send message to remote client will trigger OutgoingMsgEvent which will be
+caught by MessageOutEvtHandler and sent through corresponding interface WS or LORA
+- `IncomingMsgEvt` is triggered by LinkInterfaces when messages is received. MessagesInterfaces wraps message in IncomingMsgEvt object, with additional data like `MsgSrc` (e.g. interface on which it was received: WS or LORA), `ClientKey` (client identifier from which it was received)
+
+### Event forwarding
+Event forwarding is used to share events between different devices.
+Any remote client or device can subscribe and receive notification from 
+another device's events through messages.
+
+
+```
+            DEVICE #1                     |                 DEVICE #2
+                                          |
++-----------+                    +-----------------+     
+|   GPIO    |___             --> |  MSG INTERFACE  | ----
+| INTERFACE |   | (push)    |    +-----------------+     | 
++-----------+   | PinEvt    |             |              | Msg
+                v           |             |              v
+            +--------+      |             |          +---------+
+            | EVENT  |.     |             |          | MSG     |
+            | HANDLER|      |             |          | HANDLER |
+            +--------+      |             |          +---------+
+      (dispatch) |          |  Msg        |               | (dispatch)
+            +------------+  |             |          +------------------+
+            | EVENT MSG  |__|             |          | MSG NOTIFICATION |--- NotEvt -->
+            | NOTIFIER   | (forward)      |          | HANDLER          |   (push)
+            +------------+                |          +------------------+
+                                          |
+                           
+```
+`MessageEventNotifier` will catch specific events like `LogEvt`, `PinEvt` and notify
+client subscribers through `WS`/`LORA` message
+
+When regular event is triggered on local device, it can be caught by EventRemoteForwarder which will wrap EVT into MSG and sent over interface to another device.
+On remote device side , message will be handled in `MessageNotificationHandler` which will trigger
+ event in local event queue
+
+An example: `LOG` is triggered when log is printed and sent to browser client for display purpose
+
+Another example can be alarm system which is split on 2 devices separated by long distance by which only communication mean is through LORA messages .
+When event occurs on remote device, pin state changes triggering an `AlarmPinEvt` which is caught by `AlarmRemoteSystem` event handler and immediately remotely forwarded through LoraMsg.
+Once received on other device, notification event will be triggered, caught by 
+`AlarmSystem` which react with sound alert.
