@@ -2,8 +2,9 @@
 #include <ArduinoJson.h>
 #include <Events.h>
 #include <LogStore.h>
-#include <MessageInterface.h>
+#include <LinkInterface.h>
 #include <System.h>
+
 /*
 * msg = {
     type: 'api',
@@ -31,19 +32,19 @@ msg = {
   data: apiRequest
 }
 */
-MessageInterface::MessageInterface(MessageInterfaceType interfaceType)
+LinkInterface::LinkInterface(LinkInterfaceType interfaceType)
     : type(interfaceType){};
 
-void MessageInterface::onMessage(std::string &msgContent) {
-  Msg incomingMsg(type);
-  incomingMsg.parseContent(msgContent);
+void LinkInterface::onPacket(std::string &msgContent) {
+  Packet incomingMsg(type);
+  incomingMsg.parse(msgContent);
   // LogStore::dbg(
-  //     "[MessageInterface::onMessage] apiModule: " + apiCall.apiModule +
+  //     "[LinkInterface::onPacket] apiModule: " + apiCall.apiModule +
   //     ", call: " + apiCall.call + ", data: " + apiCall.data);
   if (true || !filterOutMessage(incomingMsg)) {
     // send ACK MSG
-    if (incomingMsg.acknowledgeDelivery) {
-      MessageInterface::sendAck(msgContent);
+    if (incomingMsg.ack) {
+      LinkInterface::sendAck(msgContent);
     }
     std::string outgoingReply = ApiModule::dispatchApiCall(incomingMsg);
     // optional sync reply
@@ -53,11 +54,11 @@ void MessageInterface::onMessage(std::string &msgContent) {
   }
 }
 
-bool MessageInterface::filterOutMessage(Msg &incomingMsg) {
+bool LinkInterface::filterOutMessage(Packet &incomingMsg) {
 
   std::string deviceId = System::cfgStore.configContent()["deviceId"];
   bool rejected =
-      type == MessageInterfaceType::LORA && incomingMsg.target != deviceId;
+      type == LinkInterfaceType::LORA && incomingMsg.target != deviceId;
   if (rejected) {
     LogStore::info("[LoraInterface::filterMessage] reject message from " +
                    incomingMsg.sender + " addressed to " + incomingMsg.target +
@@ -66,15 +67,15 @@ bool MessageInterface::filterOutMessage(Msg &incomingMsg) {
   return rejected;
 }
 
-void MessageInterface::sendAck(std::string &msgContent) {
+void LinkInterface::sendAck(std::string &msgContent) {
 
-  Msg ackMsg(type);
-  ackMsg.parseContent(msgContent);
+  Packet ackMsg(type);
+  ackMsg.parse(msgContent);
   ackMsg.target = ackMsg.sender; // swap sender and target
-  ackMsg.apiCall = "msgACK";
-  ackMsg.objContent = "";
-  ackMsg.acknowledgeDelivery = false;
+  ackMsg.api = "msgACK";
+  ackMsg.content = "";
+  ackMsg.ack = false;
   std::string ackMsgContent(ackMsg.serialize());
-  LogStore::info("[MessageInterface::sendAck] #" + ackMsg.msgId);
+  LogStore::info("[LinkInterface::sendAck] #" + ackMsg.timestamp);
   notifyClient(ackMsgContent);
 }

@@ -31,11 +31,11 @@ NOTIFICATION mode usecase examples:
 #include <map>
 #include <string>
 // CPP
-#define API_MODULE "MsgNotif"
+#define API_MODULE "notifier"
 #include <CommonObj.h>
 #include <HTTPSServer.hpp>
 #include <LogStore.h>
-#include <MessageInterface.h>
+#include <LinkInterface.h>
 #include <WsInterface.h>
 
 /**
@@ -49,12 +49,10 @@ Event notification: by default sending all events to all connected client on WS
 interface. When enabled, sending to all devices through LORA
 
 Events received from outside through message notification are injected locally
-and will in turn be automatically forwarded to any connected client on WS
-interface
+and will in turn be automatically forwarded to any connected client on WS interface
 
                +-----------+     +-----------------------------+
-      MSG  --> |   LORA    | --> |  EventMessageNotifications  |  (api call from
-MSG) | Interface |     |  ::onForeignEvent      |
+      MSG  --> |   LORA    | --> |  EventMessageNotifications  |  (api call from MSG) | Interface |     |  ::onForeignEvent      |
                +-----------+     +-----------------------------+
                                               |
                                               | push evt<ext>
@@ -65,8 +63,7 @@ MSG) | Interface |     |  ::onForeignEvent      |
                                               | catch evt<ext>
                                               v
 +--------+     +-----------+     +---------------------------+
-| CLIENT | <-- |    WS     | <-- |  EventMessageNotifications|  (onEvent
-callback)
+| CLIENT | <-- |    WS     | <-- |  EventMessageNotifications|  (onEvent callback)
 +--------+     | Interface |     |      ::onEvent            |
                +-----------+     +---------------------------+
 */
@@ -84,7 +81,7 @@ private:
 public:
   // catching events from queue, sending notification message
   void onEvent(Event evt);
-  std::string onApiCall(Msg &msg);
+  std::string onApiCall(Packet &msg);
   // receiving message notification, pushing event in queue
   void onForeignEvent(std::string evtContent);
 
@@ -114,10 +111,10 @@ void EventMessageNotifications::onEvent(Event evt) {
   std::string eventSrc =
       evt.context.source == "local" ? deviceId : evt.context.source;
   ForeignEvent fEvt(evt, deviceId);
-  Msg outgoingMsg(MessageInterfaceType::WS);
-  outgoingMsg.apiModule = API_MODULE;
-  outgoingMsg.apiCall = "onForeignEvent";
-  outgoingMsg.objContent = fEvt.toObjContent();
+  Packet outgoingMsg(LinkInterfaceType::WS);
+  outgoingMsg.api = API_MODULE;
+  outgoingMsg.cmd = "onForeignEvent";
+  outgoingMsg.content = fEvt.toObjContent();
   std::string outgoingMsgContent = outgoingMsg.serialize();
   // notify client
   // WsInterface::clientInstance(clientKey)->notifyClient(eventNotifMsg);
@@ -125,7 +122,7 @@ void EventMessageNotifications::onEvent(Event evt) {
 };
 
 // void EventMessageNotifications::extractMsg(std::string rawMsg) {
-std::string EventMessageNotifications::onApiCall(Msg &msg) {
+std::string EventMessageNotifications::onApiCall(Packet &msg) {
   LogStore::info("[EventMessageNotifications::onApiCall] ");
 
   // module, submodule, command
@@ -137,8 +134,8 @@ std::string EventMessageNotifications::onApiCall(Msg &msg) {
   //   std::string clientKey = apiInput["clientKey"];
   //   return onEventSubscribe(evtType, clientKey);
   // } else
-  if (msg.apiCall == "onForeignEvent") {
-    onForeignEvent(msg.objContent);
+  if (msg.api == "onForeignEvent") {
+    onForeignEvent(msg.content);
   }
   return ("");
 }
@@ -195,8 +192,8 @@ TOTAL: 4 MessageEventNotifier instances*/
 //     LogStore::info("[EventMessageNotifications::subscribe] subscription "
 //                    "received from client " +
 //                    clientKey);
-//     // MessageInterface *clientInterfaceInstance =
-//     //     (MessageInterface *)WsInterface::clientInstance(clientKey);
+//     // LinkInterface *clientInterfaceInstance =
+//     //     (LinkInterface *)WsInterface::clientInstance(clientKey);
 //     // MessageEventNotifier *instance =
 //     //     MessageEventNotifier::getInstance(evtType, clientKey);
 //     // instance->msgInterface = clientInterfaceInstance;

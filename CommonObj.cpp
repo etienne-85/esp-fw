@@ -2,7 +2,6 @@
 #include <CommonObj.h>
 #include <LogStore.h>
 #include <System.h>
-#include <iostream>
 #include <utils.h>
 
 /*
@@ -11,53 +10,69 @@
 ###############
 */
 
-Msg::Msg(MessageInterfaceType msgInterfaceType): interface(msgInterfaceType) {
+Packet::Packet(LinkInterfaceType msgInterfaceType): interface(msgInterfaceType) {
   // by default device local elapsed time
   // int deviceLocalTime = millis();
   // msgId = std::to_string(deviceLocalTime);
 }
 
-void Msg::parseContent(std::string msgContent) {
-  JsonDocument msgData;
-  // convert to a json object
-  DeserializationError error = deserializeJson(msgData, msgContent);
-  std::string id = msgData["id"];
-  std::string src = msgData["src"];
-  std::string dst = msgData["dst"];
-  bool ack = msgData["ack"];
-  std::string apiModuleCall = msgData["cmd"]; // format apiModule:call
-  std::string obj = msgData["obj"];
-  std::vector<std::string> items = splitFromCharDelim(apiModuleCall, ':');
-  apiModule = items.at(0);
-  apiCall = items.at(1);
-  objContent = obj;
-  // content = msgContent;
-  msgId = id;
-  sender = src;
-  target = dst;
-  acknowledgeDelivery = ack;
-  // interface = interfaceSrc;
+bool Packet::parse(const std::string rawData) {
+    JsonDocument parsed;
+    
+    // Check JSON deserialization
+    DeserializationError error = deserializeJson(parsed, rawData);
+    if (error) {
+        // Log error if needed: Serial.println("JSON parsing failed");
+        LogStore::dbg("[Packet::parse] invalid JSON " );
+        return false;
+    }
+
+    // Extract all fields (ArduinoJson returns defaults for missing fields)
+    timestamp = parsed["timestamp"].as<std::string>();
+    sender = parsed["src"].as<std::string>();
+    target = parsed["dst"].as<std::string>();
+    ack = parsed["ack"].as<bool>();
+    data = parsed["data"].as<std::string>();
+    
+    std::string endpoint = parsed["endpoint"].as<std::string>();
+    
+    // Validate based on string content
+    if (timestamp.empty() || endpoint.empty()) {
+        return false;
+    }
+    
+    std::vector<std::string> split = splitFromCharDelim(endpoint, ':');
+    
+    // Check split result and validate components
+    if (split.size() < 2 || split[0].empty() || split[1].empty()) {
+        return false;
+    }
+    
+    api = split[0];
+    cmd = split[1];
+    
+    return true;  // Parsing successful
 }
 
-std::string Msg::serialize() {
+std::string Packet::serialize() {
   // convert object to JSON
-  JsonDocument msgData;
-  if (msgId.length() > 0) {
-    msgData["id"] = msgId;
+  JsonDocument packetData;
+  if (timestamp.length() > 0) {
+    packetData["id"] = timestamp;
   }
   if (target.length() > 0) {
     std::string deviceId = System::cfgStore.configContent()["deviceId"];
-    msgData["src"] = deviceId;
-    msgData["dst"] = target;
+    packetData["src"] = deviceId;
+    packetData["dst"] = target;
   }
-  if (acknowledgeDelivery) {
-    msgData["ack"] = true;
+  if (ack) {
+    packetData["ack"] = true;
   }
-  msgData["cmd"] = apiModule + ":" + apiCall;
-  msgData["obj"] = objContent;
-  std::string msgContent("");
-  serializeJson(msgData, msgContent);
-  return msgContent;
+  packetData["endpoint"] = api + ":" + cmd;
+  packetData["data"] = data;
+  std::string rawPacketData("");
+  serializeJson(packetData, rawPacketData);
+  return rawPacketData;
 }
 
 // /*
