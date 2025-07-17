@@ -1,56 +1,52 @@
-# esp32-remote-control
-Keywords: `esp32-remote-control`, `esp32-remote-gpio`, `esp32-remote-first`, `esp32-gpio-over-ws`,
-`esp-IO`, `esp-arch`
-
+# esp32-fw
+## Overview
 `esp-fw` is an ESP32 firmware exposing low level feat remotely.
+It is specially conceived to be paired with `esp32-app` web application 
 
-Altough `esp32-fw` firmware can work standalone, it is specifically designed to work
-with `esp32-app` companion 
+**Main features**
+- Real time communication over `WS` (***websockets***)
+- Long range communications over `LORA`
+- Full device control over `WS` interface (`GPIO`)
 
-## Capabilities
-- real time communication over ws
-- long range communications over lora
-- full device control over ws interface (GPIO)
-- 
+**Capabilities**
+- `PWA` (***progressive web application***) ready: meaning it can work with externaly hosted web-app developed independantly from firmware
+- `WSS` (***secured web-sockets***) is required to use `PWA` 
+- `HTTPS` server allows use of `WSS` 
 
-**Strength**
+**Keywords**
+ `esp32-remote-control`, `esp32-remote-gpio`, `esp32-remote-first`, `esp32-gpio-over-ws`, `esp-IO`, `esp-arch`
 
-- `HTTPS` server allowing use of `WSS` (secured web-sockets)
-- `WSS`  (besides real time communication ) allows use of externaly web hosted web-app `PWA` (progressive web application)
-- `PWA` hosted separately allows updating UI and logic without changing device's firmware 
+## Features
+Built-in support for:
+
+***system***
+- external config loader (requires `FS`)
+- Filesystem (`FS`)
+
+***connectivity***
+- wifi (both `AP` and `STA` modes)
+- `WS` real-time communications
+- `LORA` long-range communications
+
+***others***
+- `OTA` firmware updater 
+
+***advanced***
+- **GPIO-over-ws** provide real time remote access and control of `GPIO`s over websockets.
 
 ## Concept
 **Remote first approach**
 
-Device is primarily controlled by client which can access and control GPIO pins remotely
+Device is primarily controlled by client which can access and control `GPIO` pins remotely
 This allows hardware drivers externalization so firmware focuses purely on low-level generic actions, while client handles projects' specific logic and drivers implementation.
 
 Benefits:
-- genericity: reduces need for frequent firmware rebuild
+- genericity: allows reusing same firmware for several projects, reduces need for frequent firmware updates
 - confort: delegating implementation of project's specific logic and drivers on client side using more friendly scripting languages
 
 **WYSIWYG**
  what you do/see on webapp reflects what happens on device.
 
-## Features
-- **GPIO-over-ws** provide real time remote access and control of GPIOs over websockets.
-- **Network**  real-time (`WS`) and long range communications (`LORA`)
-
-
-
-
-Extra requirements  : 
-- load settings from external configuration file => requires `FS` (filesystem)
-- OTA firmware updater
-
-
-Built-in support for:
-- external config loader
-- Filesystem
-- wifi (both AP and STA mode)
-- OTA firmware deployment 
-- realtime communications through websockets
-- GPIO over websockets: remotely control GPIOs => support new hardware without changing any firmware code
 
 ## Usage
 
@@ -61,7 +57,7 @@ Built-in support for:
 - `pio-upload-firmware`
 - `pio-upload-fs`
 
-## Setup
+### Setup
 
 - download workspace artifact and extract it
 - after sourcing `.pio.env` install `plaftormIO` devenv with `pio-install` command
@@ -88,9 +84,9 @@ If all preceding worked, firmware was successfully uploaded to the board, the co
 
 Note that serial flashing won't be required anymore to update the board as `OTA flash` can be used instead.
 
-## Advanced tips
+### Advanced tips
 
-### Recovery flash using `esptool-js` browser app
+** Recovery flash using `esptool-js` browser app **
 Bootloader bin
 - location: `.pio/build/esp32s3/bootloader.bin`
 - flash address: `0x0`
@@ -115,6 +111,7 @@ FS image:
 ESP device is considered as mostly used to
 - react to events (GPIO, ...)
 - talk with external source
+
 ### Interfaces
 Interfaces can be seen as doors to interact with
 - outside world through `GPIO interface` 
@@ -178,7 +175,7 @@ It can be catched then by EventHandler to perform an action.
 
 
 
-DEPRECATED:
+### DEPRECATED
 
 By default MsgEvt are caught by MessageInEventHandler which will dispatch to corresponding 
 MessageHandler depending on MsgType. 
@@ -187,7 +184,7 @@ Any EventTrigger, willing to send message to remote client will trigger Outgoing
 caught by MessageOutEvtHandler and sent through corresponding interface WS or LORA
 - `IncomingMsgEvt` is triggered by LinkInterfaces when messages is received. MessagesInterfaces wraps message in IncomingMsgEvt object, with additional data like `MsgSrc` (e.g. interface on which it was received: WS or LORA), `ClientKey` (client identifier from which it was received)
 
-### Event forwarding
+**Event forwarding**
 Event forwarding is used to share events between different devices.
 Any remote client or device can subscribe and receive notification from 
 another device's events through messages.
