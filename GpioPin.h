@@ -55,7 +55,7 @@ public:
 */
 
 // DOP
-class DigitalOutputPin : GpioPin {
+class DigitalOutputPin : public GpioPin {
 public:
   DigitalOutputPin(int pinNb, bool defaultPinState = false);
   void write(bool pinState);

@@ -1,19 +1,20 @@
 #pragma once
-#include <GpioPin.h>
 #include <Events.h>
+#include <GpioPin.h>
 
 #define DEFAULT_BUZZER_PIN 16
 #define DEFAULT_LED_PIN 17
 
 class SndNotif : public EventHandler {
-  static int pinDefault;
-
 public:
-  static SndNotif &instance(int commonPin = DEFAULT_BUZZER_PIN);
+  static int pinDefault;
+  static int buzDefaultHigh;
+  static SndNotif &instance();
+  int buzzerType;
 
 private:
   DigitalOutputPin *buzPin;
-  SndNotif(int pinId);
+  SndNotif(int pinId, bool buzzerType = false);
 
 public:
   void onEvent(Event evt);

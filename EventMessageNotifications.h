@@ -114,7 +114,7 @@ void EventMessageNotifications::onEvent(Event evt) {
   Packet outgoingMsg(LinkInterfaceType::WS);
   outgoingMsg.api = API_MODULE;
   outgoingMsg.cmd = "onForeignEvent";
-  outgoingMsg.content = fEvt.toObjContent();
+  outgoingMsg.data = fEvt.toObjContent();
   std::string outgoingMsgContent = outgoingMsg.serialize();
   // notify client
   // WsInterface::clientInstance(clientKey)->notifyClient(eventNotifMsg);
@@ -135,7 +135,7 @@ std::string EventMessageNotifications::onApiCall(Packet &msg) {
   //   return onEventSubscribe(evtType, clientKey);
   // } else
   if (msg.api == "onForeignEvent") {
-    onForeignEvent(msg.content);
+    onForeignEvent(msg.data);
   }
   return ("");
 }
