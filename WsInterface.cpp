@@ -7,7 +7,7 @@
  ****************************/
 
 WsInterface::WsInterface(std::string clientKey)
-    : WebsocketHandler(), MessageInterface(MessageInterfaceType::WS),
+    : WebsocketHandler(), LinkInterface(LinkInterfaceType::WS),
       clientKey(clientKey) {
   LogStore::info("[WsInterface::construct] instance created for client " +
                  clientKey);
@@ -70,14 +70,14 @@ void WsInterface::registerService(std::string serviceRoute,
  * can be overridden by providing custom callback at service registration
  */
 
-void WsInterface::onMessage(WebsocketInputStreambuf *inbuf) {
-  // Get the input message
+void WsInterface::onPacket(WebsocketInputStreambuf *inbuf) {
+  // Get packet content
   std::ostringstream ss;
-  std::string msgContent;
+  std::string content;
   ss << inbuf;
-  msgContent = ss.str();
-  LogStore::dbg("[WsInterface::onMessage] received message " + msgContent);
-  MessageInterface::onMessage(msgContent);
+  content = ss.str();
+  LogStore::dbg("[WsInterface::onPacket] incoming packet " + content);
+  LinkInterface::onPacket(content);
 }
 
 void WsInterface::notifyAll(std::string notification) {

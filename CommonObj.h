@@ -1,31 +1,32 @@
 #pragma once
 #include <Arduino.h>
 #include <string>
-// #include <MessageInterface.h>
+// #include <LinkInterface.h>
 // use forward declaration instead of former include
-// enum MessageInterfaceType; // doesn't compile
-enum MessageInterfaceType { WS, LORA };
+// enum LinkInterfaceType; // doesn't compile
+enum LinkInterfaceType { WS, LORA };
 
 /*
-Typical objects to be carried over messages are:
-- API calls
-- Foreign events
+  Transport packets
+  Typical objects to be carried over packets are:
+  - API calls
+  - Foreign events
 */
 
-class Msg {
+class Packet {
 public:
-  std::string msgId = std::to_string(millis()); // device's local ms
-  std::string apiModule;
-  std::string apiCall;
-  std::string objContent; // optional object content to be processed by API
+  std::string timestamp = std::to_string(millis()); // device's local ms
+  std::string api;  // targetted module/service
+  std::string cmd;  // api call
+  std::string data; // data to be processed by API
   std::string sender;
   std::string target;
-  MessageInterfaceType interface; // source interface of incoming msg or target
+  bool ack = false; // insure message delivery
+  LinkInterfaceType interface; // source interface of incoming msg or target
                                   // interface for outgoing msg
-  bool acknowledgeDelivery = false; // insure message delivery
   int retryCount;                   // number of attempts sending message
-  Msg(MessageInterfaceType msgInterfaceType);
-  void parseContent(std::string msgContent);
+  Packet(LinkInterfaceType msgInterfaceType);
+  bool parse(std::string msgContent);
   std::string serialize();
   // TODO minification/encryption
   void decode(std::string msg);

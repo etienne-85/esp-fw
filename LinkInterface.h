@@ -16,9 +16,9 @@ Message is object carryier
     data: obj           // ForeignEvt, ..
   }
 */
-// enum MessageInterfaceType { WS, LORA };
+// enum LinkInterfaceType { WS, LORA };
 
-class MessageInterface {
+class LinkInterface {
   // awaiting delivery
   // for WS, messages will remain in pending queue until client connects
   // static std::queue<Message> pending;
@@ -26,13 +26,13 @@ class MessageInterface {
   //  message that didn't get receipt confirmation
   // static std::queue<Message> undelivered;
 public:
-  static void sendMsg(Msg msg);
-  MessageInterfaceType type;
+  static void sendMsg(Packet msg);
+  LinkInterfaceType type;
 
 protected:
-  MessageInterface(MessageInterfaceType interfaceType);
-  void onMessage(std::string &msgContent);
-  bool filterOutMessage(Msg &incomingMsg);
+  LinkInterface(LinkInterfaceType interfaceType);
+  void onPacket(std::string &msgContent);
+  bool filterOutMessage(Packet &incomingMsg);
   void sendAck(std::string &msgContent);
 
 public:

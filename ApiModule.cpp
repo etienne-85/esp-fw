@@ -11,7 +11,7 @@ ApiModule::ApiModule(std::string apiModule) {
 // STATIC DEF
 std::map<std::string, ApiModule *> ApiModule::registeredApiModules;
 
-std::string ApiModule::dispatchApiCall(Msg &msg) {
+std::string ApiModule::dispatchApiCall(Packet &msg) {
   // TODO
   // std::string msgSrc = type; // interface type (LORA,WS)
   // std::string msgCtx = msgRoot["ctx"];
@@ -24,9 +24,9 @@ std::string ApiModule::dispatchApiCall(Msg &msg) {
   // bool bypassEvtQueue(msgMode == "sync");
   // EventQueue::pushEvent(event, bypassEvtQueue);
   // find corresponding sub service
-  auto apiModule = ApiModule::registeredApiModules.find(msg.apiModule);
+  auto apiModule = ApiModule::registeredApiModules.find(msg.api);
   if (apiModule != ApiModule::registeredApiModules.end()) {
-    LogStore::dbg("[ApiModule::dispatchApiCall] API module: " + msg.apiModule);
+    LogStore::dbg("[ApiModule::dispatchApiCall] API module: " + msg.api);
     std::string dataOut = apiModule->second->onApiCall(msg);
     //     // default empty reply
     //     std::string outgoingMsg("");
@@ -54,7 +54,7 @@ std::string ApiModule::dispatchApiCall(Msg &msg) {
     //     return outgoingMsg;
   } else {
     LogStore::info("[ApiModule::dispatchApiCall] unregistered API module: " +
-                   msg.apiCall);
+                   msg.api);
   }
   return "";
 }

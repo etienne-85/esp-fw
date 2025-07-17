@@ -3,7 +3,7 @@
 #include <CommonObj.h>
 
 /*
- * API modules reachable through MessageInterface
+ * API modules reachable through LinkInterface
  * Each inheriting class will be registered as service and must be singleton
  * When api call or request is received, it will be dispatched to matching
  declared service instance
@@ -36,8 +36,8 @@ protected:
   ApiModule(std::string serviceId);
 
 public:
-  static std::string dispatchApiCall(Msg &msg);
+  static std::string dispatchApiCall(Packet &msg);
   // TO BE IMPLEMENTED IN CHILD CLASS
 
-  virtual std::string onApiCall(Msg &msg) = 0;
+  virtual std::string onApiCall(Packet &msg) = 0;
 };

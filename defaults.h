@@ -7,5 +7,6 @@
 #define PRIVATE_KEY_FILE "/private_key.json"
 #define LOG_FILE "/logs.json"
 #define LOG_ARCHIVE_FILE "/logs.archive.json"
+#define DEFAULT_BUZ_PIN 16
 
 // extern const char defaultWSPath[] = "/test"; // (1)

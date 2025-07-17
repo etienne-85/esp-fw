@@ -1,5 +1,6 @@
 #include <LogStore.h>
 #include <LoraInterface.h>
+#include <Notifications.h>
 #define API_MODULE "Lora"
 // define the pins used by the transceiver module
 #define ss 10
@@ -9,7 +10,7 @@
 
 int packetsCount = 0;
 LoraInterface::LoraInterface()
-    : MessageInterface(MessageInterfaceType::LORA), ApiModule(API_MODULE) {}
+    : LinkInterface(LinkInterfaceType::LORA), ApiModule(API_MODULE) {}
 
 LoraInterface &LoraInterface::instance() {
   // check if service already exists, otherwise create one
@@ -52,12 +53,13 @@ void LoraInterface::autoAdjustSF() {
 }
 
 void LoraInterface::sendText(std::string outgoingMsg) {
-  LogStore::info("[LoraInterface::send] SENT packet");
-  LogStore::dbg(outgoingMsg);
   // Send LoRa packet to recipient
   LoRa.beginPacket();
   LoRa.print(outgoingMsg.c_str());
   LoRa.endPacket();
+  LogStore::info("[LoraInterface::send] SENT packet");
+  LogStore::dbg(outgoingMsg);
+  SndNotif::instance().bips(1, 32, 20);
 }
 
 void LoraInterface::notifyClient(std::string msgContent) {
@@ -78,16 +80,17 @@ void LoraInterface::listen() {
       LogStore::info("[LoraInterface::listen] RECEIVED packet");
       LogStore::dbg(incomingMsg);
     }
-    onMessage(incomingMsg);
+    SndNotif::instance().bips(2, 32, 100);
+    onPacket(incomingMsg);
   }
 }
 
-std::string LoraInterface::onApiCall(Msg &msg) {
-  LogStore::info("[LoraInterface::onApiCall] " + msg.apiCall);
+std::string LoraInterface::onApiCall(Packet &msg) {
+  LogStore::info("[LoraInterface::onApiCall] " + msg.cmd);
 
   // std::string apiCommand = apiInput["cmd"];
-  if (msg.apiCall == "setup") {
-    setup(msg.objContent);
+  if (msg.cmd == "setup") {
+    setup(msg.cmd);
   }
   return "";
 }

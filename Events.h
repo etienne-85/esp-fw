@@ -1,6 +1,6 @@
 #pragma once
 #include <CommonObj.h>
-#include <MessageInterface.h>
+#include <LinkInterface.h>
 #include <map>
 #include <queue>
 #include <string>
@@ -10,7 +10,7 @@
 EVT/MSG
 
   [LocalEventQueue] -- evt --> [EventHandler<forwarder>] -->
-[RemoteMessageInterface] --> msg [RemoteMessageInterface] --> msg -->
+[RemoteLinkInterface] --> msg [RemoteLinkInterface] --> msg -->
 [MessageListener<NotMsg>] --> NotEvt
 
 Events are queud in EventQueue by EventQueue and dequeud when sent over

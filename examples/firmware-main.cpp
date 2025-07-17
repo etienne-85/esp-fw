@@ -38,7 +38,7 @@ void setup() {
   Serial.begin(115200);
   LogStore::info("**********************************");
   LogStore::info("*****     ESP32 Firmware     *****");
-  LogStore::info("*****       BUILD: OP        *****");
+  LogStore::info("*****       BUILD: QR        *****");
   LogStore::info("**********************************");
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -47,7 +47,9 @@ void setup() {
   std::string deviceId = System::cfgStore.configContent()["deviceId"];
   LogStore::info("DeviceID: " + deviceId);
   LogStore::info("");
-  SndNotif::instance(BUZZER_PIN).bips(1, 10);
+  SndNotif::buzDefaultHigh = true;
+  SndNotif::pinDefault = BUZZER_PIN;
+  SndNotif::instance().bips(1, 10);
   // BuzAlert::instance(BUZZER_PIN);
   // LogStore::info("*** Services ***");
   // TestLogConsumer::instance();

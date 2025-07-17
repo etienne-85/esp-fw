@@ -29,9 +29,9 @@ public:
   AlarmSystem(int pinPIR, int pinBUZ);
   void onEvent(Event evt);
   void onMotionDetected();
-  std::string onApiCall(Msg &msg);
-  void onMsgAck(Msg &msg);
-  void onSoundAlert(Msg &msg);
+  std::string onApiCall(Packet &msg);
+  void onMsgAck(Packet &msg);
+  void onSoundAlert(Packet &msg);
 };
 
 AlarmSystem &AlarmSystem::instance(int pinPIR, int pinBUZ) {
@@ -57,18 +57,18 @@ void AlarmSystem::onMotionDetected() {
   int current = millis();
   // notify remote device of alarm
   if (current - lastTrigger > TRIGGERS_MIN_DELAY) {
-    Msg outgoingMsg(MessageInterfaceType::LORA);
-    outgoingMsg.apiModule = API_MODULE;
-    outgoingMsg.apiCall = "onAlert";
-    outgoingMsg.objContent = "";
-    outgoingMsg.acknowledgeDelivery = true;
+    Packet outgoingMsg(LinkInterfaceType::LORA);
+    outgoingMsg.api = API_MODULE;
+    outgoingMsg.cmd = "onAlert";
+    outgoingMsg.data = "";
+    outgoingMsg.ack = true;
 
     if (current - lastRequest > ACK_DELAY) {
       LogStore::info("[AlarmSystem::onMotionDetected] send alarm trigger #" +
-                     outgoingMsg.msgId);
+                     outgoingMsg.timestamp);
       lastRequest = current;
       receivedAck = false;
-      SndNotif::instance().bips(1, 32, 20);
+      SndNotif::instance().bips(1, 16, 500);
       std::string outgoingMsgContent = outgoingMsg.serialize();
       LoraInterface::instance().sendText(outgoingMsgContent);
     } else {
@@ -83,28 +83,28 @@ void AlarmSystem::onMotionDetected() {
 /*
  *   API CALLS
  */
-std::string AlarmSystem::onApiCall(Msg &msg) {
+std::string AlarmSystem::onApiCall(Packet &msg) {
   // int current = millis();
   // if (current - lastTrigger < MAX_DELAY)
-  if (msg.apiCall == "onAlert") {
+  if (msg.cmd == "onAlert") {
     onSoundAlert(msg);
-  } else if (msg.apiCall == "msgACK") {
+  } else if (msg.cmd == "msgACK") {
     onMsgAck(msg);
   }
   return "";
 }
 
 // API call handled on trigger device
-void AlarmSystem::onMsgAck(Msg &msg) {
-  LogStore::info("[AlarmSystem::onMsgAck] received ACK #" + msg.msgId);
+void AlarmSystem::onMsgAck(Packet &msg) {
+  LogStore::info("[AlarmSystem::onMsgAck] received ACK #" + msg.timestamp);
   receivedAck = true;
   SndNotif::instance().bips(2, 100, 200);
 }
 
 // API call handled on listening device
-void AlarmSystem::onSoundAlert(Msg &msg) {
+void AlarmSystem::onSoundAlert(Packet &msg) {
   LogStore::info("[AlarmSystem::onSoundAlert] received alarm trigger #" +
-                 msg.msgId);
+                 msg.timestamp);
   // for (int i = 0; i < 3; i++) {
   //   buzPin->write(true);
   //   delay(20);

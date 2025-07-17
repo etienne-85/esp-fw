@@ -3,14 +3,14 @@
 #include <ArduinoJson.h>
 #include <CommonObj.h>
 #include <LoRa.h>
-#include <MessageInterface.h>
+#include <LinkInterface.h>
 // #include <SPI.h>
 
 /**
  * LORA radio/wireless communication interface
  * suitable for long range communication between devices
  */
-class LoraInterface : public MessageInterface, public ApiModule {
+class LoraInterface : public LinkInterface, public ApiModule {
 
 public:
   static LoraInterface &instance();
@@ -22,5 +22,5 @@ public:
   void sendText(std::string outgoingMsg);
   void notifyClient(std::string notif);
   void listen();
-  std::string onApiCall(Msg &msg);
+  std::string onApiCall(Packet &msg);
 };

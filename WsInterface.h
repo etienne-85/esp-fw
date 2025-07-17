@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include <CommonObj.h>
 #include <Events.h>
-#include <MessageInterface.h>
+#include <LinkInterface.h>
 #include <WebsocketHandler.hpp>
 #include <defaults.h>
 #include <string>
@@ -17,7 +17,7 @@ using namespace httpsserver;
   Any remote client connected will create new instance of this class
  */
 
-class WsInterface : public MessageInterface, public WebsocketHandler {
+class WsInterface : public LinkInterface, public WebsocketHandler {
 public:
   // STATIC MEMBERS
   // static std::map<std::string, RemoteService *> registeredServices;
@@ -55,7 +55,7 @@ public:
   // Inherited from base class
   // This method is called when a message arrives directly to the service
   // otherwise common callback from factory is used instead
-  virtual void onMessage(WebsocketInputStreambuf *input);
+  virtual void onPacket(WebsocketInputStreambuf *input);
   // Handler function on connection close
   void onClose();
   void sendText(std::string text);
