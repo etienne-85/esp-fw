@@ -7,6 +7,12 @@ Keywords: `esp32-remote-control`, `esp32-remote-gpio`, `esp32-remote-first`, `es
 Altough `esp32-fw` firmware can work standalone, it is specifically designed to work
 with `esp32-app` companion 
 
+## Capabilities
+- real time communication over ws
+- long range communications over lora
+- full device control over ws interface (GPIO)
+- 
+
 **Strength**
 
 - `HTTPS` server allowing use of `WSS` (secured web-sockets)
