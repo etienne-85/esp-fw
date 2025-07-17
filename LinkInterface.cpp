@@ -73,7 +73,7 @@ void LinkInterface::sendAck(std::string &msgContent) {
   ackMsg.parse(msgContent);
   ackMsg.target = ackMsg.sender; // swap sender and target
   ackMsg.api = "msgACK";
-  ackMsg.content = "";
+  ackMsg.data = "";
   ackMsg.ack = false;
   std::string ackMsgContent(ackMsg.serialize());
   LogStore::info("[LinkInterface::sendAck] #" + ackMsg.timestamp);

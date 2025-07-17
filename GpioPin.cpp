@@ -1,18 +1,20 @@
 #include <Arduino.h>
 #include <GpioPin.h>
 #include <LogStore.h>
-#include <iostream>
 #include <Notifications.h>
+#include <iostream>
 
 using namespace std;
 /**
  *   BASE PIN
  */
 
+// std::map<int, GpioPin *> GpioPin::pins;
+
 // TODO allocate corresponding hardware pin in constructor
 GpioPin::GpioPin(int pin, int defaultValue)
     : pin(pin), defaultValue(defaultValue) {
-  // Gpio::pins.insert({pin, this});
+  // GpioPin::pins.insert({pin, this});
   LogStore::info("[GpioPIN#" + to_string(pin) + "::alloc]");
 }
 
@@ -108,14 +110,14 @@ template <int pinId> void onPinStateChange(void) {
   std::string evtType = EventTypeMap[EventType::PIN_TRIGGER];
   std::string evtData =
       "[TriggerPin::onPinStateChange] " + std::to_string(pinId);
-  // EventContext evtCtx;  // use default, customise any required
+  EventContext evtCtx; // use default, customise any required
   // evtCtx.origin = EventOrigin.LOCAL;
   // evtCtx.timestamp = 0;
   // evtCtx.priority = 0;
   Event evt;
   evt.type = evtType;
   evt.content = evtData;
-  // evt.context = evtCtx;
+  evt.context = evtCtx;
   EventQueue::pushEvent(evt);
 }
 
